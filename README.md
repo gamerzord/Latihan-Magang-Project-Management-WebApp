@@ -85,4 +85,4 @@ project-root/
 ```
 
 # ERD
-![ERD](Untitled Diagram.drawio(3).png "ERD")
+![ERD](./Untitled Diagram.drawio(3).png "ERD")
