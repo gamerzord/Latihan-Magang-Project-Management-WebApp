@@ -84,4 +84,7 @@ project-root/
     └── validators.ts
 ```
 
-# ERD COMING SOON
+# ERD
+```
+![ERD](Untitled Diagram.drawio(3).png "ERD")
+```
