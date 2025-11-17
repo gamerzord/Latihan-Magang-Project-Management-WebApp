@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar_url',
     ];
 
     /**
@@ -45,5 +46,36 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function workspaces()
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_members')
+            ->withPivot('role', 'invited_by', 'joined_at')
+            ->withTimestamps();
+    }
+
+    public function boards()
+    {
+        return $this->belongsToMany(Board::class, 'board_members')
+            ->withPivot('role', 'added_by')
+            ->withTimestamps();
+    }
+
+    public function cards()
+    {
+        return $this->belongsToMany(Card::class, 'card_members')
+            ->withPivot('assigned_by')
+            ->withTimestamps();
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(Activity::class);
     }
 }
