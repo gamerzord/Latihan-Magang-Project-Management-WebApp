@@ -19,11 +19,15 @@ class ListController extends Controller
         $board = Board::find($data['board_id']);
 
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json([
+                'message' => 'Board not found'
+            ], 404);
         }
 
         if (!$board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $maxPosition = BoardList::where('board_id', $data['board_id'])->max('position') ?? -1;
@@ -33,7 +37,9 @@ class ListController extends Controller
 
         $list = BoardList::create($data);
 
-        return response()->json($list->load('cards'), 201);
+        return response()->json([
+            'list' => $list->load('cards')
+        ], 201);
     }
 
     public function update(Request $request, $id)
@@ -41,11 +47,15 @@ class ListController extends Controller
         $list = BoardList::with('board')->find($id);
 
         if (!$list) {
-            return response()->json(['message' => 'List not found'], 404);
+            return response()->json([
+                'message' => 'List not found'
+            ], 404);
         }
 
         if (!$list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $data = $request->validate([
@@ -57,7 +67,9 @@ class ListController extends Controller
 
         $list->update($data);
 
-        return response()->json($list->fresh());
+        return response()->json([
+            'list' => $list->fresh()
+        ], 200);
     }
 
     public function destroy($id)
@@ -65,16 +77,22 @@ class ListController extends Controller
         $list = BoardList::with('board')->find($id);
 
         if (!$list) {
-            return response()->json(['message' => 'List not found'], 404);
+            return response()->json([
+                'message' => 'List not found'
+            ], 404);
         }
 
         if (!$list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $list->delete();
 
-        return response()->json(['message' => 'List deleted']);
+        return response()->json([
+            'message' => 'List deleted'
+        ], 200);
     }
 
     public function reorder(Request $request)
@@ -91,7 +109,9 @@ class ListController extends Controller
             ]);
         }
 
-        return response()->json(['message' => 'Lists reordered successfully']);
+        return response()->json([
+            'message' => 'Lists reordered successfully'
+        ], 200);
     }
 
     public function archive($id)
@@ -99,11 +119,15 @@ class ListController extends Controller
         $list = BoardList::with('board')->find($id);
 
         if (!$list) {
-            return response()->json(['message' => 'List not found'], 404);
+            return response()->json([
+                'message' => 'List not found'
+            ], 404);
         }
 
         if (!$list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $list->update(['archived' => true]);
@@ -111,7 +135,7 @@ class ListController extends Controller
         return response()->json([
             'message' => 'List archived successfully',
             'list' => $list->fresh()
-        ]);
+        ], 200);
     }
 
     public function restore($id)
@@ -119,11 +143,15 @@ class ListController extends Controller
         $list = BoardList::with('board')->find($id);
 
         if (!$list) {
-            return response()->json(['message' => 'List not found'], 404);
+            return response()->json([
+                'message' => 'List not found'
+            ], 404);
         }
 
         if (!$list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $list->update(['archived' => false]);
@@ -131,6 +159,6 @@ class ListController extends Controller
         return response()->json([
             'message' => 'List restored successfully',
             'list' => $list->fresh()
-        ]);
+        ], 200);
     }
 }

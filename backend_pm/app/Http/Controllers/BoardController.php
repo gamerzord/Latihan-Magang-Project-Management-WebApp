@@ -21,7 +21,9 @@ class BoardController extends Controller
                 ->get();
         }
 
-        return response()->json($boards);
+        return response()->json([
+            'boards' => $boards
+        ], 200);
     }
 
     public function store(Request $request)
@@ -43,7 +45,9 @@ class BoardController extends Controller
             'role' => 'admin',
         ]);
 
-        return response()->json($board->load(['creator', 'workspace']), 201);
+        return response()->json([
+            'board' => $board->load(['creator', 'workspace'])
+        ], 201);
     }
 
     public function show($id)
@@ -63,10 +67,14 @@ class BoardController extends Controller
         }
 
         if (!$board->isMember(auth()->id()) && $board->visibility !== 'public') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
-        return response()->json($board);
+        return response()->json([
+            'board' => $board
+        ], 200);
     }
 
     public function update(Request $request, $id)
@@ -74,11 +82,15 @@ class BoardController extends Controller
         $board = Board::find($id);
 
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json([
+                'message' => 'Board not found'
+            ], 404);
         }
 
         if (!$board->hasRole(auth()->id(), 'admin') && !$board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $data = $request->validate([
@@ -91,7 +103,9 @@ class BoardController extends Controller
 
         $board->update($data);
 
-        return response()->json($board->fresh());
+        return response()->json([
+            'board' => $board->fresh()
+        ], 200);
     }
 
     public function destroy($id)
@@ -99,16 +113,22 @@ class BoardController extends Controller
         $board = Board::find($id);
 
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json([
+                'message' => 'Board not found'
+            ], 404);
         }
 
         if (!$board->hasRole(auth()->id(), 'admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $board->delete();
 
-        return response()->json(['message' => 'Board deleted']);
+        return response()->json([
+            'message' => 'Board deleted successfully'
+        ], 200);
     }
 
     public function addMember(Request $request, $id)
@@ -116,11 +136,15 @@ class BoardController extends Controller
         $board = Board::find($id);
 
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json([
+                'message' => 'Board not found'
+            ], 404);
         }
 
         if (!$board->hasRole(auth()->id(), 'admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $data = $request->validate([
@@ -129,7 +153,9 @@ class BoardController extends Controller
         ]);
 
         if ($board->isMember($data['user_id'])) {
-            return response()->json(['message' => 'User is already a member of this board'], 422);
+            return response()->json([
+                'message' => 'User is already a member of this board'
+            ], 422);
         }
 
         $board->members()->attach($data['user_id'], [
@@ -164,7 +190,9 @@ class BoardController extends Controller
 
         $board->members()->detach($userId);
 
-        return response()->json(['message' => 'Member removed successfully'], 200);
+        return response()->json([
+            'message' => 'Member removed successfully'
+        ], 200);
     }
 
     public function updateMemberRole(Request $request, $id, $userId)
@@ -172,11 +200,15 @@ class BoardController extends Controller
         $board = Board::find($id);
 
         if (!$board) {
-            return response()->json(['message' => 'Board not found'], 404);
+            return response()->json([
+                'message' => 'Board not found'
+            ], 404);
         }
 
         if (!$board->hasRole(auth()->id(), 'admin')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $data = $request->validate([
@@ -184,13 +216,17 @@ class BoardController extends Controller
         ]);
 
         if (!$board->isMember($userId)) {
-            return response()->json(['message' => 'User is not a member of this board'], 404);
+            return response()->json([
+                'message' => 'User is not a member of this board'
+            ], 404);
         }
 
         if ($board->hasRole($userId, 'admin') && $data['role'] !== 'admin') {
             $adminCount = $board->members()->wherePivot('role', 'admin')->count();
             if ($adminCount <= 1) {
-                return response()->json(['message' => 'Cannot demote the only admin of the board'], 422);
+                return response()->json([
+                    'message' => 'Cannot demote the only admin of the board'
+                ], 422);
             }
         }
 

@@ -42,7 +42,7 @@ class WorkspaceController extends Controller
         ], 201);
     }
 
-    public function show(Request $request, $id)
+    public function show($id)
     {
         $workspace = Workspace::with(['creator', 'members'])
             ->withCount('boards')

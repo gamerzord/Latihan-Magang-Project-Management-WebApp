@@ -20,11 +20,15 @@ class CardController extends Controller
         $list = BoardList::with('board')->find($data['list_id']);
 
         if (!$list) {
-            return response()->json(['message' => 'List not found'], 404);
+            return response()->json([
+                'message' => 'List not found'
+            ], 404);
         }
 
         if (!$list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $maxPosition = Card::where('list_id', $data['list_id'])->max('position') ?? -1;
@@ -34,7 +38,9 @@ class CardController extends Controller
 
         $card = Card::create($data);
 
-        return response()->json($card->load(['labels', 'members', 'checklists']), 201);
+        return response()->json([
+            'card' => $card->load(['labels', 'members', 'checklists'])
+        ], 201);
     }
 
     public function show($id)
@@ -50,14 +56,20 @@ class CardController extends Controller
         ])->find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         if (!$card->list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
-        return response()->json($card);
+        return response()->json([
+            'card' => $card
+        ], 200);
     }
 
     public function update(Request $request, $id)
@@ -65,11 +77,15 @@ class CardController extends Controller
         $card = Card::with('list.board')->find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         if (!$card->list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $data = $request->validate([
@@ -84,7 +100,9 @@ class CardController extends Controller
 
         $card->update($data);
 
-        return response()->json($card->load(['labels', 'members', 'checklists']));
+        return response()->json([
+            'card' => $card->load(['labels', 'members', 'checklists'])
+        ]);
     }
 
     public function destroy($id)
@@ -101,7 +119,9 @@ class CardController extends Controller
 
         $card->delete();
 
-        return response()->json(['message' => 'Card deleted']);
+        return response()->json([
+            'message' => 'Card deleted'
+        ], 200);
     }
 
     public function move(Request $request, $id)
@@ -109,7 +129,9 @@ class CardController extends Controller
         $card = Card::find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         $data = $request->validate([
@@ -119,7 +141,9 @@ class CardController extends Controller
 
         $card->update($data);
 
-        return response()->json($card->fresh());
+        return response()->json([
+            'card' => $card->fresh()
+        ]);
     }
 
     public function addLabel(Request $request, $id)
@@ -127,7 +151,9 @@ class CardController extends Controller
         $card = Card::find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         $data = $request->validate([
@@ -138,7 +164,9 @@ class CardController extends Controller
             $card->labels()->attach($data['label_id']);
         }
 
-        return response()->json($card->load('labels'));
+        return response()->json([
+            'card' => $card->load('labels')
+        ]);
     }
 
     public function removeLabel($id, $labelId)
@@ -146,12 +174,16 @@ class CardController extends Controller
         $card = Card::find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         $card->labels()->detach($labelId);
 
-        return response()->json($card->load('labels'));
+        return response()->json([
+            'card' => $card->load('labels')
+        ]);
     }
 
     public function addMember(Request $request, $id)
@@ -159,7 +191,9 @@ class CardController extends Controller
         $card = Card::find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         $data = $request->validate([
@@ -172,7 +206,9 @@ class CardController extends Controller
             ]);
         }
 
-        return response()->json($card->load('members'));
+        return response()->json([
+            'card' => $card->load('members')
+        ]);
     }
 
     public function removeMember($id, $userId)
@@ -180,12 +216,16 @@ class CardController extends Controller
         $card = Card::find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         $card->members()->detach($userId);
 
-        return response()->json($card->load('members'));
+        return response()->json([
+            'card' => $card->load('members')
+        ]);
     }
 
     public function archive($id)
@@ -193,11 +233,15 @@ class CardController extends Controller
         $card = Card::with('list.board')->find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         if (!$card->list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $card->update(['archived' => true]);
@@ -213,11 +257,15 @@ class CardController extends Controller
         $card = Card::with('list.board')->find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         if (!$card->list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $card->update(['archived' => false]);
@@ -233,11 +281,15 @@ class CardController extends Controller
         $card = Card::with('list.board')->find($id);
 
         if (!$card) {
-            return response()->json(['message' => 'Card not found'], 404);
+            return response()->json([
+                'message' => 'Card not found'
+            ], 404);
         }
 
         if (!$card->list->board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
         }
 
         $card->update([
