@@ -1,4 +1,3 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 
 export default defineNuxtConfig({
@@ -54,12 +53,11 @@ export default defineNuxtConfig({
     vue: {
       template: {
         transformAssetUrls,
-      },
-    },
+      }
+    }
   },
 
-  modules: [
-    '@nuxt/eslint', '@nuxt/icon',
+  modules: ['@nuxt/eslint', '@nuxt/icon', '@pinia/nuxt',
     async (_options, nuxt) => {
       nuxt.hooks.hook('vite:extendConfig', (config) => {
         // @ts-expect-error
@@ -74,5 +72,19 @@ export default defineNuxtConfig({
 
   build: {
     transpile: ['vuetify'],
+  },
+
+  app: {
+    head: {
+      title: 'Project Management App',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'description', content: 'A project management Web Application' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      ]
+    }
   },
 })

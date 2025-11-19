@@ -117,7 +117,7 @@ class WorkspaceController extends Controller
 
         $data = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'role' => 'required|in:member,admin',
+            'role' => 'required|in:member,admin,guest',
         ]);
 
         if ($workspace->isMember($data['user_id'])) {
@@ -177,7 +177,7 @@ class WorkspaceController extends Controller
         }
 
         $data = $request->validate([
-            'role' => 'required|in:member,admin,owner',
+            'role' => 'required|in:member,admin,owner,guest',
         ]);
 
         if (!$workspace->isMember($userId)) {

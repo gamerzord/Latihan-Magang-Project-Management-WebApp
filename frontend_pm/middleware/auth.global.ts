@@ -1,20 +1,20 @@
-export default defineNuxtRouteMiddleware((to) => {
-  if (import.meta.server) {
-  const userToken = useCookie('auth-token').value
-  const adminToken = useCookie('admin-auth-token').value
-  const token = userToken || adminToken
+import { useUserStore } from '~/stores/user'
 
-  const publicPages = ['/login', '/register', '/admin']
+export default defineNuxtRouteMiddleware(async (to, from) => {
+  const userStore = useUserStore()
 
-  if (publicPages.includes(to.path)) {
-    if (token) return navigateTo('/')
-    return
+  const publicRoutes = ['/login', '/register']
+  const isPublic = publicRoutes.includes(to.path)
+
+  if (!userStore.isAuthenticated && !userStore.isLoading) {
+    await userStore.checkAuth()
   }
 
-  if (to.path === '/') {
-    return
+  if (userStore.isAuthenticated && isPublic) {
+    return navigateTo('/')
   }
 
-  if (!token) return navigateTo('/login')
+  if (!userStore.isAuthenticated && !isPublic) {
+    return navigateTo('/login')
   }
 })
