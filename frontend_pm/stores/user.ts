@@ -5,6 +5,7 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const isAuthenticated = ref(false)
   const isLoading = ref(false)
+  const error = ref<string | null>(null)
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase.replace('/api', '')
 
@@ -14,23 +15,31 @@ export const useUserStore = defineStore('user', () => {
   const setUser = (userData: User) => {
     user.value = userData
     isAuthenticated.value = true
+    error.value = null
   }
 
   const clearUser = () => {
     user.value = null
     isAuthenticated.value = false
+    error.value = null
+  }
+
+  const clearError = () => {
+    error.value = null
   }
 
   const checkAuth = async (): Promise<boolean> => {
     if (isLoading.value) return false
     
     isLoading.value = true
+    error.value = null
     try {
-      const userData = await $fetch<User>(`${config.public.apiBase}/user`)
-      setUser(userData)
+      const userData = await $fetch<{ user: User }>(`${config.public.apiBase}/user`)
+      setUser(userData.user)
       return true
-    } catch (error) {
+    } catch (err: any) {
       clearUser()
+      error.value = err.data?.message || 'Authentication check failed'
       return false
     } finally {
       isLoading.value = false
@@ -39,19 +48,21 @@ export const useUserStore = defineStore('user', () => {
 
   const login = async (credentials: { email: string; password: string }): Promise<User> => {
     isLoading.value = true
+    error.value = null
     try {
       await $fetch('/sanctum/csrf-cookie', { baseURL })
       
-      const userData = await $fetch<User>(`${config.public.apiBase}/login`, {
+      const userData = await $fetch<{ user: User }>(`${config.public.apiBase}/login`, {
         method: 'POST',
         body: credentials
       })
       
-      setUser(userData)
-      return userData
-    } catch (error) {
+      setUser(userData.user)
+      return userData.user
+    } catch (err: any) {
       clearUser()
-      throw error
+      error.value = err.data?.message || 'Login failed. Please check your credentials.'
+      throw err
     } finally {
       isLoading.value = false
     }
@@ -59,19 +70,21 @@ export const useUserStore = defineStore('user', () => {
 
   const register = async (userData: { name: string; email: string; password: string; password_confirmation: string }): Promise<User> => {
     isLoading.value = true
+    error.value = null
     try {
       await $fetch('/sanctum/csrf-cookie', { baseURL })
       
-      const newUser = await $fetch<User>(`${config.public.apiBase}/register`, {
+      const newUser = await $fetch<{ user: User }>(`${config.public.apiBase}/register`, {
         method: 'POST',
         body: userData
       })
       
-      setUser(newUser)
-      return newUser
-    } catch (error) {
+      setUser(newUser.user)
+      return newUser.user
+    } catch (err: any) {
       clearUser()
-      throw error
+      error.value = err.data?.message || 'Registration failed. Please try again.'
+      throw err
     } finally {
       isLoading.value = false
     }
@@ -80,22 +93,25 @@ export const useUserStore = defineStore('user', () => {
   const logout = async (): Promise<void> => {
     try {
       await $fetch(`${config.public.apiBase}/logout`, { method: 'POST' })
-    } catch (error) {
+    } catch (err: any) {
+      error.value = err.data?.message || 'Logout failed'
     } finally {
       clearUser()
     }
   }
 
   return {
-    user,
-    isAuthenticated,
-    isLoading,
+    user: readonly(user),
+    isAuthenticated: readonly(isAuthenticated),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
     
     currentUser,
     isLoggedIn,
     
     setUser,
     clearUser,
+    clearError,
     checkAuth,
     login,
     register,

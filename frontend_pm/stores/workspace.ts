@@ -20,7 +20,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading.value = true
     error.value = null
     try {
-      workspaces.value = await $fetch<Workspace[]>(`${config.public.apiBase}/workspaces`)
+      workspaces.value = (await $fetch<{ workspaces: Workspace[]}>(`${config.public.apiBase}/workspaces`)).workspaces
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch workspaces'
     } finally {
@@ -32,7 +32,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading.value = true
     error.value = null
     try {
-      currentWorkspace.value = await $fetch<Workspace>(`${config.public.apiBase}/workspaces/${id}`)
+      currentWorkspace.value = (await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces/${id}`)).workspace
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch workspace'
     } finally {
@@ -44,12 +44,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading.value = true
     error.value = null
     try {
-      const workspace = await $fetch<Workspace>(`${config.public.apiBase}/workspaces`, {
+      const workspace = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces`, {
         method: 'POST',
         body: data
       })
-      workspaces.value.push(workspace)
-      return workspace
+      workspaces.value.push(workspace.workspace)
+      return workspace.workspace
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create workspace'
       throw err
@@ -60,16 +60,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   const updateWorkspace = async (id: number, data: UpdateWorkspaceRequest) => {
     try {
-      const updated = await $fetch<Workspace>(`${config.public.apiBase}/workspaces/${id}`, {
+      const updated = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces/${id}`, {
         method: 'PUT',
         body: data
       })
       const index = workspaces.value.findIndex(w => w.id === id)
       if (index !== -1) {
-        workspaces.value[index] = updated
+        workspaces.value[index] = updated.workspace
       }
       if (currentWorkspace.value?.id === id) {
-        currentWorkspace.value = updated
+        currentWorkspace.value = updated.workspace
       }
       return updated
     } catch (err: any) {

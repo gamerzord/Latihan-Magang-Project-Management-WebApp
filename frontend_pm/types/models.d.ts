@@ -14,8 +14,8 @@ export interface Workspace {
   visibility: 'private' | 'workspace' | 'public'
   created_by: number
   creator?: User
-  members: WorkspaceMember[]
-  boards: Board[]
+  members?: readonly WorkspaceMember[]
+  boards?: readonly Board[]
   boards_count?: number
   created_at: string
   updated_at: string
@@ -45,10 +45,10 @@ export interface Board {
   created_by: number
   workspace?: Workspace
   creator?: User
-  members: BoardMember[]
-  lists: List[]
-  labels: Label[]
-  activities: Activity[]
+  members?: readonly BoardMember[]
+  lists?: readonly List[]
+  labels?: readonly Label[]
+  activities?: readonly Activity[]
   created_at: string
   updated_at: string
 }
@@ -74,7 +74,7 @@ export interface List {
   archived: boolean
   created_by: number
   board?: Board
-  cards: Card[]
+  cards?: readonly Card[]
   creator?: User
   created_at: string
   updated_at: string
@@ -92,12 +92,12 @@ export interface Card {
   created_by: number
   list?: List
   creator?: User
-  labels: Label[]
-  members: User[]
-  checklists: Checklist[]
-  attachments: Attachment[]
-  comments: Comment[]
-  activities: Activity[]
+  labels?: readonly Label[]
+  members?: readonly User[]
+  checklists?: readonly Checklist[]
+  attachments?: readonly Attachment[]
+  comments?: readonly Comment[]
+  activities?: readonly Activity[]
   created_at: string
   updated_at: string
 }
@@ -108,7 +108,7 @@ export interface Label {
   name?: string
   color: string
   board?: Board
-  cards: Card[]
+  cards?: readonly Card[]
   cards_count?: number
   created_at: string
   updated_at: string
@@ -120,7 +120,7 @@ export interface Checklist {
   title: string
   position: number
   card?: Card
-  items: ChecklistItem[]
+  items?: readonly ChecklistItem[]
   progress?: {
     total: number
     completed: number

@@ -8,7 +8,8 @@ export const useBoardStore = defineStore('board', () => {
   const error = ref<string | null>(null)
   const config = useRuntimeConfig()
 
-  const sortByPosition = <T extends { position: number }>(items: T[]): T[] => {
+  const sortByPositionReadonly = <T extends { position: number }>(items: readonly T[] | undefined): readonly T[] => {
+    if (!items) return []
     return [...items].sort((a, b) => a.position - b.position)
   }
 
@@ -17,7 +18,7 @@ export const useBoardStore = defineStore('board', () => {
   )
   
   const currentBoardLists = computed(() => 
-    currentBoard.value?.lists ? sortByPosition(currentBoard.value.lists) : []
+    currentBoard.value?.lists ? sortByPositionReadonly(currentBoard.value.lists) : []
   )
   
   const currentBoardLabels = computed(() => 
@@ -32,7 +33,7 @@ export const useBoardStore = defineStore('board', () => {
         ? `${config.public.apiBase}/boards?workspace_id=${workspaceId}`
         : `${config.public.apiBase}/boards`
       
-      boards.value = await $fetch<Board[]>(url)
+      boards.value = (await $fetch<{ boards: Board[]} >(url)).boards
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch boards'
     } finally {
@@ -44,7 +45,7 @@ export const useBoardStore = defineStore('board', () => {
     loading.value = true
     error.value = null
     try {
-      currentBoard.value = await $fetch<Board>(`${config.public.apiBase}/boards/${id}`)
+      currentBoard.value = (await $fetch<{ board: Board} >(`${config.public.apiBase}/boards/${id}`)).board
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch board'
       throw err
@@ -57,11 +58,11 @@ export const useBoardStore = defineStore('board', () => {
     loading.value = true
     error.value = null
     try {
-      const board = await $fetch<Board>(`${config.public.apiBase}/boards`, {
+      const board = await $fetch<{ board: Board }>(`${config.public.apiBase}/boards`, {
         method: 'POST',
         body: data
       })
-      boards.value.push(board)
+      boards.value.push(board.board)
       return board
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create board'
@@ -73,16 +74,16 @@ export const useBoardStore = defineStore('board', () => {
 
   const updateBoard = async (id: number, data: UpdateBoardRequest) => {
     try {
-      const updated = await $fetch<Board>(`${config.public.apiBase}/boards/${id}`, {
+      const updated = await $fetch<{ board: Board }>(`${config.public.apiBase}/boards/${id}`, {
         method: 'PUT',
         body: data
       })
       const index = boards.value.findIndex(b => b.id === id)
       if (index !== -1) {
-        boards.value[index] = updated
+        boards.value[index] = updated.board
       }
       if (currentBoard.value?.id === id) {
-        currentBoard.value = { ...currentBoard.value, ...updated }
+        currentBoard.value = { ...currentBoard.value, ...updated.board }
       }
       return updated
     } catch (err: any) {

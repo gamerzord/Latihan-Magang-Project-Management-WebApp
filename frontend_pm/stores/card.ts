@@ -11,23 +11,31 @@ export const useCardStore = defineStore('card', () => {
 
   const updateCardInBoardStore = (cardId: number, updates: Partial<Card>) => {
     if (boardStore.currentBoard?.lists) {
-      for (const list of boardStore.currentBoard.lists) {
-        const cardIndex = list.cards?.findIndex(c => c.id === cardId)
-        if (cardIndex !== undefined && cardIndex !== -1 && list.cards) {
-          list.cards[cardIndex] = { ...list.cards[cardIndex], ...updates }
-          break
+      const updatedLists = boardStore.currentBoard.lists.map(list => {
+        if (!list.cards) return list
+
+        const cardIndex = list.cards.findIndex(c => c.id === cardId)
+        if (cardIndex !== -1) {
+          const updatedCards = [...list.cards]
+          updatedCards[cardIndex] = { ...updatedCards[cardIndex], ...updates } as Card
+          return { ...list, cards: updatedCards }
         }
-      }
+        return list
+      })
+      boardStore.updateLocalBoard({ lists: updatedLists })
     }
   }
 
   const removeCardFromBoardStore = (cardId: number) => {
     if (boardStore.currentBoard?.lists) {
-      for (const list of boardStore.currentBoard.lists) {
-        if (list.cards) {
-          list.cards = list.cards.filter(c => c.id !== cardId)
+      const updatedLists = boardStore.currentBoard.lists.map(list => {
+        if (!list.cards) return list
+        return {
+          ...list,
+          cards: list.cards.filter(c => c.id !== cardId)
         }
-      }
+      })
+      boardStore.updateLocalBoard({ lists: updatedLists })
     }
   }
 
@@ -35,7 +43,7 @@ export const useCardStore = defineStore('card', () => {
     loading.value = true
     error.value = null
     try {
-      currentCard.value = await $fetch<Card>(`${config.public.apiBase}/cards/${id}`)
+      currentCard.value = (await $fetch<{ card: Card} >(`${config.public.apiBase}/cards/${id}`)).card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch card'
     } finally {
@@ -47,17 +55,20 @@ export const useCardStore = defineStore('card', () => {
     loading.value = true
     error.value = null
     try {
-      const card = await $fetch<Card>(`${config.public.apiBase}/cards`, {
+      const card = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards`, {
         method: 'POST',
         body: data
       })
       
       if (boardStore.currentBoard?.lists) {
-        const list = boardStore.currentBoard.lists.find(l => l.id === data.list_id)
-        if (list) {
-          const currentCards = list.cards || []
-          list.cards = [...currentCards, card]
+        const updatedLists = boardStore.currentBoard.lists.map(list => {
+          if (list.id === data.list_id) {
+            const currentCards = list.cards || []
+            return { ...list, cards: [...currentCards, card.card ]}
         }
+          return list
+      })
+        boardStore.updateLocalBoard({ lists: updatedLists })
       }
       
       return card
@@ -71,16 +82,16 @@ export const useCardStore = defineStore('card', () => {
 
   const updateCard = async (id: number, data: UpdateCardRequest) => {
     try {
-      const updated = await $fetch<Card>(`${config.public.apiBase}/cards/${id}`, {
+      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${id}`, {
         method: 'PUT',
         body: data
       })
       
       if (currentCard.value?.id === id) {
-        currentCard.value = { ...currentCard.value, ...updated }
+        currentCard.value = { ...currentCard.value, ...updated.card }
       }
       
-      updateCardInBoardStore(id, updated)
+      updateCardInBoardStore(id, updated.card)
       
       return updated
     } catch (err: any) {
@@ -115,22 +126,32 @@ export const useCardStore = defineStore('card', () => {
       
       if (boardStore.currentBoard?.lists) {
         let movedCard: Card | undefined
-        for (const list of boardStore.currentBoard.lists) {
-          const cardIndex = list.cards?.findIndex(c => c.id === id)
-          if (cardIndex !== undefined && cardIndex !== -1 && list.cards) {
-            movedCard = list.cards.splice(cardIndex, 1)[0]
-            break
+
+        const listsWithoutCard = boardStore.currentBoard.lists.map(list => {
+          if (!list.cards) return list
+
+          const cardIndex = list.cards.findIndex(c => c.id === id)
+          if (cardIndex !== -1) {
+            movedCard = list.cards[cardIndex]
+            return {
+              ...list,
+              cards: list.cards.filter(c => c.id !== id)
+            }
           }
-        }
+          return list
+        })
+        
         
         if (movedCard) {
-          const newList = boardStore.currentBoard.lists.find(l => l.id === listId)
-          if (newList) {
-            movedCard.list_id = listId
-            movedCard.position = position
-            if (!newList.cards) newList.cards = []
-            newList.cards.push(movedCard)
-          }
+          const updatedLists = listsWithoutCard.map(list => {
+            if (list.id === listId) {
+              const updateCard = { ...movedCard!, list_id: listId, position }
+              const currentCards = list.cards || []
+              return { ...list, cards: [...currentCards, updateCard ] }
+            }
+            return list
+          })
+          boardStore.updateLocalBoard({ lists: updatedLists } )
         }
       }
     } catch (err: any) {
@@ -207,13 +228,13 @@ export const useCardStore = defineStore('card', () => {
 
   const archiveCard = async (cardId: number) => {
     try {
-      const updated = await $fetch<Card>(`${config.public.apiBase}/cards/${cardId}/archive`, {
+      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/archive`, {
         method: 'POST'
       })
       
-      updateCardInBoardStore(cardId, updated)
+      updateCardInBoardStore(cardId, updated.card)
       if (currentCard.value?.id === cardId) {
-        currentCard.value = updated
+        currentCard.value = updated.card
       }
       
       return updated
@@ -225,13 +246,13 @@ export const useCardStore = defineStore('card', () => {
 
   const restoreCard = async (cardId: number) => {
     try {
-      const updated = await $fetch<Card>(`${config.public.apiBase}/cards/${cardId}/restore`, {
+      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/restore`, {
         method: 'POST'
       })
       
-      updateCardInBoardStore(cardId, updated)
+      updateCardInBoardStore(cardId, updated.card)
       if (currentCard.value?.id === cardId) {
-        currentCard.value = updated
+        currentCard.value = updated.card
       }
       
       return updated
@@ -243,13 +264,13 @@ export const useCardStore = defineStore('card', () => {
 
   const toggleDueDateCompletion = async (cardId: number) => {
     try {
-      const updated = await $fetch<Card>(`${config.public.apiBase}/cards/${cardId}/toggle-due`, {
+      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/toggle-due`, {
         method: 'POST'
       })
       
-      updateCardInBoardStore(cardId, updated)
+      updateCardInBoardStore(cardId, updated.card)
       if (currentCard.value?.id === cardId) {
-        currentCard.value = updated
+        currentCard.value = updated.card
       }
       
       return updated
