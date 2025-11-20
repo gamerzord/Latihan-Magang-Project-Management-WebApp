@@ -5,11 +5,11 @@
       <v-col cols="12" sm="8" md="6" lg="4">
         <v-card elevation="8" class="pa-6">
           <v-card-title class="text-h4 text-center py-6 text-primary">
-            Welcome to Trello Clone
+            Welcome to Project Management Web App
           </v-card-title>
           <v-card-text class="text-center pb-6">
             <p class="text-body-1 text-medium-emphasis mb-6">
-              A powerful project management tool to organize your tasks and collaborate with your team.
+              A project management tool to organize your tasks and collaborate with your team.
             </p>
             <v-btn
               color="primary"
