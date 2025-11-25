@@ -239,6 +239,7 @@ export interface UpdateBoardRequest {
   background_type?: 'color' | 'image'
   background_value?: string
   visibility?: 'private' | 'workspace' | 'public'
+  archived?: boolean
 }
 
 export interface CreateListRequest {

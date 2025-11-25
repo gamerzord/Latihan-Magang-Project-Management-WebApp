@@ -1,6 +1,4 @@
 import type { DragData } from '~/types/models'
-import { useCardStore } from '~/stores/card'
-import { useUiStore } from '~/stores/ui'
 
 export const useDragDrop = () => {
   const draggedItem = ref<DragData | null>(null)

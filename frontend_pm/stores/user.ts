@@ -1,4 +1,3 @@
-import { defineStore } from 'pinia'
 import type { User } from '~/types/models'
 
 export const useUserStore = defineStore('user', () => {
@@ -7,7 +6,6 @@ export const useUserStore = defineStore('user', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const config = useRuntimeConfig()
-  const baseURL = config.public.apiBase.replace('/api', '')
 
   const currentUser = computed(() => user.value)
   const isLoggedIn = computed(() => isAuthenticated.value)
@@ -39,7 +37,11 @@ export const useUserStore = defineStore('user', () => {
       return true
     } catch (err: any) {
       clearUser()
-      error.value = err.data?.message || 'Authentication check failed'
+      
+      if (err.status !== 401) {
+        error.value = err.data?.message || 'Authentication check failed'
+      }
+
       return false
     } finally {
       isLoading.value = false
@@ -50,7 +52,7 @@ export const useUserStore = defineStore('user', () => {
     isLoading.value = true
     error.value = null
     try {
-      await $fetch('/sanctum/csrf-cookie', { baseURL })
+      await $fetch('https://localhost:8000/sanctum/csrf-cookie')
       
       const userData = await $fetch<{ user: User }>(`${config.public.apiBase}/login`, {
         method: 'POST',
@@ -72,7 +74,7 @@ export const useUserStore = defineStore('user', () => {
     isLoading.value = true
     error.value = null
     try {
-      await $fetch('/sanctum/csrf-cookie', { baseURL })
+      await $fetch('https://localhost:8000/sanctum/csrf-cookie')
       
       const newUser = await $fetch<{ user: User }>(`${config.public.apiBase}/register`, {
         method: 'POST',
@@ -101,10 +103,10 @@ export const useUserStore = defineStore('user', () => {
   }
 
   return {
-    user: readonly(user),
-    isAuthenticated: readonly(isAuthenticated),
-    isLoading: readonly(isLoading),
-    error: readonly(error),
+    user: user,
+    isAuthenticated: isAuthenticated,
+    isLoading: isLoading,
+    error: error,
     
     currentUser,
     isLoggedIn,

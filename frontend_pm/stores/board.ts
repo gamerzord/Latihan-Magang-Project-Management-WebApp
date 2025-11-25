@@ -1,4 +1,3 @@
-import { defineStore } from 'pinia'
 import type { Board, CreateBoardRequest, UpdateBoardRequest, AddBoardMemberRequest } from '~/types/models'
 
 export const useBoardStore = defineStore('board', () => {
@@ -168,10 +167,10 @@ export const useBoardStore = defineStore('board', () => {
   }
 
   return {
-    boards: readonly(boards),
-    currentBoard: readonly(currentBoard),
-    loading: readonly(loading),
-    error: readonly(error),
+    boards: boards,
+    currentBoard: currentBoard,
+    loading: loading,
+    error: error,
     
     boardById,
     currentBoardLists,

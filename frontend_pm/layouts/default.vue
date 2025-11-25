@@ -1,9 +1,12 @@
 <template>
   <v-app>
-    <Navbar v-if="userStore.isAuthenticated" />
+    <LayoutNavbar v-if="userStore.isAuthenticated" />
     
     <v-main>
-      <slot />
+      <LayoutSidebar v-if="userStore.isAuthenticated" />
+      <v-container fluid>
+        <slot />
+      </v-container>
     </v-main>
 
     <!-- Global snackbar -->
@@ -40,9 +43,15 @@
 </template>
 
 <script setup lang="ts">
-import { useUiStore } from '~/stores/ui'
-import { useUserStore } from '~/stores/user'
-
 const uiStore = useUiStore()
 const userStore = useUserStore()
+const workspaceStore = useWorkspaceStore()
+
+watch(() => userStore.isAuthenticated, async (isAuthenticated) => {
+  if (isAuthenticated) {
+    await workspaceStore.fetchWorkspaces()
+  } else {
+    workspaceStore.setCurrentWorkspace(null)
+  }
+})
 </script>

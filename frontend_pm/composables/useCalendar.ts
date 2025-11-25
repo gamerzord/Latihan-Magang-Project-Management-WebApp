@@ -1,5 +1,3 @@
-import { useUiStore } from '~/stores/ui'
-import { useBoardStore } from '~/stores/board'
 import type { CalendarEvent, CalendarFilter } from '~/types/models'
 
 export const useCalendar = () => {

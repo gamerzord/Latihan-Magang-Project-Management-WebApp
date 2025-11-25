@@ -4,7 +4,7 @@
       <v-col cols="12" sm="8" md="4">
         <v-card elevation="8" class="pa-4">
           <v-card-title class="text-h4 text-center mb-4">
-            Login to Trello Clone
+            Login to PM Web App
           </v-card-title>
 
           <v-card-text>
@@ -31,16 +31,18 @@
                 class="mb-2"
               />
 
-              <v-alert
-                v-if="userStore.error"
-                type="error"
-                density="compact"
-                class="mb-4"
-                closable
-                @click:close="userStore.clearError()"
-              >
-                {{ userStore.error }}
-              </v-alert>
+              <ClientOnly>
+                <v-alert
+                  v-if="userStore.error"
+                  type="error"
+                  density="compact"
+                  class="mb-4"
+                  closable
+                  @click:close="userStore.clearError()"
+                >
+                  {{ userStore.error }}
+                </v-alert>
+              </ClientOnly>
 
               <v-btn
                 type="submit"
@@ -68,8 +70,6 @@
 </template>
 
 <script setup lang="ts">
-import { useUserStore } from '~/stores/user'
-
 const userStore = useUserStore()
 const router = useRouter()
 const formRef = ref()

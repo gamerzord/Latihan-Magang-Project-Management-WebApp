@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-import { useBoardStore } from './board'
 import type { Card, CreateCardRequest, UpdateCardRequest, MoveCardRequest, AddLabelRequest, AddCardMemberRequest } from '~/types/models'
 
 export const useCardStore = defineStore('card', () => {
@@ -289,9 +287,9 @@ export const useCardStore = defineStore('card', () => {
   }
 
   return {
-    currentCard: readonly(currentCard),
-    loading: readonly(loading),
-    error: readonly(error),
+    currentCard: currentCard,
+    loading: loading,
+    error: error,
     
     fetchCard,
     createCard,

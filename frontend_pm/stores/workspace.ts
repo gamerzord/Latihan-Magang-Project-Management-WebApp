@@ -1,4 +1,3 @@
-import { defineStore } from 'pinia'
 import type { Workspace, CreateWorkspaceRequest, UpdateWorkspaceRequest, AddWorkspaceMemberRequest, UpdateMemberRoleRequest } from '~/types/models'
 
 export const useWorkspaceStore = defineStore('workspace', () => {
@@ -172,10 +171,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   return {
-    workspaces: readonly(workspaces),
-    currentWorkspace: readonly(currentWorkspace),
-    loading: readonly(loading),
-    error: readonly(error),
+    workspaces: workspaces,
+    currentWorkspace: currentWorkspace,
+    loading: loading,
+    error: error,
     
     workspaceById,
     currentWorkspaceBoards,

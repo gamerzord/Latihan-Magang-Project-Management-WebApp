@@ -49,17 +49,19 @@
                 variant="outlined"
                 class="mb-2"
               />
-
-              <v-alert
-                v-if="userStore.error"
-                type="error"
-                density="compact"
-                class="mb-4"
-                closable
-                @click:close="userStore.clearError()"
-              >
-                {{ userStore.error }}
-              </v-alert>
+              
+              <ClientOnly>
+                <v-alert
+                  v-if="userStore.error"
+                  type="error"
+                  density="compact"
+                  class="mb-4"
+                  closable
+                  @click:close="userStore.clearError()"
+                >
+                  {{ userStore.error }}
+                </v-alert>
+              </ClientOnly>
 
               <v-btn
                 type="submit"
@@ -87,8 +89,6 @@
 </template>
 
 <script setup lang="ts">
-import { useUserStore } from '~/stores/user'
-
 definePageMeta({
   layout: false,
 })

@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-
 export const useUiStore = defineStore('ui', () => {
   const cardModalOpen = ref(false)
   const cardModalId = ref<number | null>(null)
@@ -47,14 +45,14 @@ export const useUiStore = defineStore('ui', () => {
   const currentSnackbar = computed(() => snackbar.value)
 
   return {
-    cardModalOpen: readonly(cardModalOpen),
-    cardModalId: readonly(cardModalId),
-    boardCreateDialogOpen: readonly(boardCreateDialogOpen),
-    listCreateDialogOpen: readonly(listCreateDialogOpen),
-    workspaceCreateDialogOpen: readonly(workspaceCreateDialogOpen),
-    sidebarOpen: readonly(sidebarOpen),
-    loading: readonly(loading),
-    snackbar: readonly(snackbar),
+    cardModalOpen: cardModalOpen,
+    cardModalId: cardModalId,
+    boardCreateDialogOpen: boardCreateDialogOpen,
+    listCreateDialogOpen: listCreateDialogOpen,
+    workspaceCreateDialogOpen: workspaceCreateDialogOpen,
+    sidebarOpen: sidebarOpen,
+    loading: loading,
+    snackbar: snackbar,
     
     isCardModalOpen,
     currentCardModalId,

@@ -37,7 +37,7 @@
     <template v-else>
       <v-row class="fill-height">
         <v-col class="sidebar-col" cols="12" md="3" lg="2" v-if="uiStore.sidebarOpen">
-          <WorkspaceSelector />
+          <LayoutWorkspaceSelector />
         </v-col>
         <v-col class="main-content" :class="{ 'full-width': !uiStore.sidebarOpen }">
           <div class="d-flex align-center mb-4">
@@ -86,10 +86,6 @@
 </template>
 
 <script setup lang="ts">
-import { useUiStore } from '~/stores/ui'
-import { useUserStore } from '~/stores/user'
-import { useWorkspaceStore } from '~/stores/workspace'
-
 const userStore = useUserStore()
 const workspaceStore = useWorkspaceStore()
 const uiStore = useUiStore()

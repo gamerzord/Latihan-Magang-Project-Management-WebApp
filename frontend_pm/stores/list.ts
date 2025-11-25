@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia'
-import { useBoardStore } from './board'
 import type { List, CreateListRequest, UpdateListRequest, ReorderListsRequest } from '~/types/models'
 
 export const useListStore = defineStore('list', () => {
@@ -141,8 +139,8 @@ export const useListStore = defineStore('list', () => {
   }
 
   return {
-    loading: readonly(loading),
-    error: readonly(error),
+    loading: loading,
+    error: error,
     
     createList,
     updateList,
