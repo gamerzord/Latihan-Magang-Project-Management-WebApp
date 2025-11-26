@@ -1,4 +1,19 @@
-import type { Card, CreateCardRequest, UpdateCardRequest, MoveCardRequest, AddLabelRequest, AddCardMemberRequest } from '~/types/models'
+import type { 
+  Card,
+  Checklist, 
+  ChecklistItem, 
+  CreateCardRequest, 
+  UpdateCardRequest, 
+  MoveCardRequest, 
+  AddLabelRequest, 
+  AddCardMemberRequest,
+  CreateChecklistRequest,
+  UpdateChecklistRequest,
+  CreateChecklistItemRequest,
+  UpdateChecklistItemRequest,
+  ReorderChecklistsRequest,
+  ReorderChecklistItemsRequest
+} from '~/types/models'
 
 export const useCardStore = defineStore('card', () => {
   const currentCard = ref<Card | null>(null)
@@ -278,6 +293,158 @@ export const useCardStore = defineStore('card', () => {
     }
   }
 
+  const createChecklist = async (data: CreateChecklistRequest) => {
+    try {
+      const checklist = await $fetch<{ checklist: Checklist }>(`${config.public.apiBase}/checklists`, {
+        method: 'POST',
+        body: data
+      })
+      
+      if (currentCard.value?.id === data.card_id) {
+        await fetchCard(data.card_id)
+      }
+      
+      return checklist
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to create checklist'
+      throw err
+    }
+  }
+
+  const updateChecklist = async (id: number, data: UpdateChecklistRequest) => {
+    try {
+      const updated = await $fetch<{ checklist: Checklist }>(`${config.public.apiBase}/checklists/${id}`, {
+        method: 'PUT',
+        body: data
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+      
+      return updated
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to update checklist'
+      throw err
+    }
+  }
+
+  const deleteChecklist = async (id: number) => {
+    try {
+      await $fetch(`${config.public.apiBase}/checklists/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to delete checklist'
+      throw err
+    }
+  }
+
+  const reorderChecklists = async (data: ReorderChecklistsRequest) => {
+    try {
+      await $fetch(`${config.public.apiBase}/checklists/reorder`, {
+        method: 'POST',
+        body: data
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to reorder checklists'
+      throw err
+    }
+  }
+
+  const createChecklistItem = async (data: CreateChecklistItemRequest) => {
+    try {
+      const item = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items`, {
+        method: 'POST',
+        body: data
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+      
+      return item
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to create checklist item'
+      throw err
+    }
+  }
+
+  const updateChecklistItem = async (id: number, data: UpdateChecklistItemRequest) => {
+    try {
+      const updated = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items/${id}`, {
+        method: 'PUT',
+        body: data
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+      
+      return updated
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to update checklist item'
+      throw err
+    }
+  }
+
+  const deleteChecklistItem = async (id: number) => {
+    try {
+      await $fetch(`${config.public.apiBase}/checklist-items/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to delete checklist item'
+      throw err
+    }
+  }
+
+  const reorderChecklistItems = async (data: ReorderChecklistItemsRequest) => {
+    try {
+      await $fetch(`${config.public.apiBase}/checklist-items/reorder`, {
+        method: 'POST',
+        body: data
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to reorder checklist items'
+      throw err
+    }
+  }
+
+  const toggleChecklistItem = async (id: number, completed: boolean) => {
+    try {
+      const updated = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items/${id}/toggle`, {
+        method: 'POST',
+        body: { completed }
+      })
+      
+      if (currentCard.value?.checklists) {
+        await fetchCard(currentCard.value.id)
+      }
+      
+      return updated
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to toggle checklist item'
+      throw err
+    }
+  }
+
   const setCurrentCard = (card: Card | null) => {
     currentCard.value = card
   }
@@ -303,6 +470,17 @@ export const useCardStore = defineStore('card', () => {
     archiveCard,
     restoreCard,
     toggleDueDateCompletion,
+    
+    createChecklist,
+    updateChecklist,
+    deleteChecklist,
+    reorderChecklists,
+    createChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
+    reorderChecklistItems,
+    toggleChecklistItem,
+    
     setCurrentCard,
     clearError
   }

@@ -84,9 +84,9 @@ export interface Card {
   id: number
   list_id: number
   title: string
-  description?: string
+  description: string
   position: number
-  due_date?: string
+  due_date: string
   due_date_completed: boolean
   archived: boolean
   created_by: number
@@ -434,7 +434,6 @@ export interface ActivityStats {
   }>
 }
 
-// UI State types
 export interface DragData {
   type: 'card' | 'list'
   id: number
