@@ -57,7 +57,7 @@ export default defineNuxtConfig({
     }
   },
 
-  modules: ['@nuxt/eslint', '@nuxt/icon', '@pinia/nuxt',
+  modules: ['@nuxt/eslint', '@nuxt/icon', '@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt',
     async (_options, nuxt) => {
       nuxt.hooks.hook('vite:extendConfig', (config) => {
         // @ts-expect-error

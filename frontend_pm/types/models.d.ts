@@ -456,6 +456,10 @@ export interface CalendarFilter {
   labelIds?: number[]
   memberIds?: number[]
   showCompleted?: boolean
+  showOverdue?: boolean
+  showDueToday?: boolean
+  startDate?: string
+  endDate?: string
 }
 
 // API Response wrappers

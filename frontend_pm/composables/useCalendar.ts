@@ -93,10 +93,10 @@ export const useCalendar = () => {
   }
 
   return {
-    events: readonly(events),
-    loading: readonly(loading),
-    currentMonth: readonly(currentMonth),
-    filters: readonly(filters),
+    events: events,
+    loading: loading,
+    currentMonth: currentMonth,
+    filters: filters,
     getEventsForMonth,
     getEventsForDate,
     fetchCalendarEvents,

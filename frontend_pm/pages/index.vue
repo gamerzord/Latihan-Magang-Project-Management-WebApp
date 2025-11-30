@@ -79,8 +79,9 @@
     </template>
 
     <!-- Create Workspace Dialog -->
-    <WorkspaceCreateDialog 
+    <LayoutWorkspaceCreateDialog 
       v-model="uiStore.workspaceCreateDialogOpen"
+      @workspace-created="handleWorkspaceCreated"
     />
   </v-container>
 </template>
@@ -95,6 +96,10 @@ useAutoRefresh(async () => {
     await workspaceStore.fetchWorkspaces()
   }
 })
+
+const handleWorkspaceCreated = (workspace: any) => {
+  console.log('Workspace created:', workspace)
+}
 </script>
 
 <style scoped>

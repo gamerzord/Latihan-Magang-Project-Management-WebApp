@@ -116,7 +116,6 @@ const router = useRouter()
 const quickActions = [
   { title: 'Calendar View', icon: 'mdi-calendar', to: '/calendar' },
   { title: 'Templates', icon: 'mdi-view-grid', to: '/templates' },
-  { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
 ]
 
 const workspaceColors = [

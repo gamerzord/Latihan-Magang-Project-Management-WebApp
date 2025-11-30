@@ -4,6 +4,8 @@ export const useDragDrop = () => {
   const draggedItem = ref<DragData | null>(null)
   const dragOverList = ref<number | null>(null)
   const isDragging = ref(false)
+  const uiStore = useUiStore()
+  const cardStore = useCardStore()
 
   const startDrag = (data: DragData) => {
     draggedItem.value = data
@@ -29,7 +31,6 @@ export const useDragDrop = () => {
 
     try {
       if (draggedItem.value.type === 'card') {
-        const cardStore = useCardStore()
         await cardStore.moveCard(draggedItem.value.id, targetListId, targetPosition)
       }
       // You could add list reordering here later:
@@ -39,8 +40,6 @@ export const useDragDrop = () => {
       // }
     } catch (error) {
       console.error('Drag and drop failed:', error)
-      // You could show a snackbar error here
-      const uiStore = useUiStore()
       uiStore.showSnackbar('Failed to move item', 'error')
     } finally {
       endDrag()
@@ -48,9 +47,9 @@ export const useDragDrop = () => {
   }
 
   return {
-    draggedItem: readonly(draggedItem),
-    dragOverList: readonly(dragOverList),
-    isDragging: readonly(isDragging),
+    draggedItem: draggedItem,
+    dragOverList: dragOverList,
+    isDragging: isDragging,
     startDrag,
     endDrag,
     onDragOver,

@@ -9,7 +9,11 @@
 
     <div class="calendar-toolbar">
       <CalendarMenu
-        :filters="filters"
+        :filters="{
+          ...filters,
+          labelIds: filters.labelIds ? [...filters.labelIds] : filters.labelIds,
+          memberIds: filters.memberIds ? [...filters.memberIds] : filters.memberIds
+        }"
         :board="board"
         @update:filters="updateFilters"
       />
@@ -49,13 +53,11 @@ const boardId = computed(() => {
 const board = computed(() => boardStore.currentBoard)
 
 const {
-  events,
   loading,
   currentMonth,
   filters,
   getEventsForMonth,
   fetchCalendarEvents,
-  setMonth,
   nextMonth,
   prevMonth,
   goToToday,

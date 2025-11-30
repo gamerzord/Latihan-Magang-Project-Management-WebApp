@@ -3,6 +3,7 @@ import { VCalendar } from 'vuetify/labs/VCalendar'
 
 export default defineNuxtPlugin((app) => {
   const vuetify = createVuetify({
+    ssr: true,
     components: {
       VCalendar,
     },
@@ -33,7 +34,6 @@ export default defineNuxtPlugin((app) => {
         }
       }
     },
-    ssr: true,
   })
   app.vueApp.use(vuetify)
 })

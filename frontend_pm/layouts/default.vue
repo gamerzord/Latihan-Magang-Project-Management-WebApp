@@ -1,13 +1,15 @@
 <template>
   <v-app>
-    <LayoutNavbar v-if="userStore.isAuthenticated" />
-    
-    <v-main>
-      <LayoutSidebar v-if="userStore.isAuthenticated" />
-      <v-container fluid>
-        <slot />
-      </v-container>
-    </v-main>
+    <client-only>
+      <LayoutNavbar v-if="userStore.isAuthenticated" />
+      
+      <v-main>
+        <LayoutSidebar v-if="userStore.isAuthenticated" />
+        <v-container fluid>
+          <slot />
+        </v-container>
+      </v-main>
+    </client-only>
 
     <!-- Global snackbar -->
     <v-snackbar

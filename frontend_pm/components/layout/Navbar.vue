@@ -1,6 +1,5 @@
 <template>
   <v-app-bar color="primary" elevation="2">
-    <v-app-bar-nav-icon @click="toggleSidebar" />
     
     <v-toolbar-title class="text-h6">
       Project Management Web App
@@ -88,10 +87,6 @@ const getUserInitials = (name: string): string => {
     .map(part => part.charAt(0).toUpperCase())
     .join('')
     .slice(0, 2)
-}
-
-const toggleSidebar = () => {
-  uiStore.toggleSidebar()
 }
 
 const selectWorkspace = (workspace: Workspace) => {
