@@ -155,16 +155,6 @@
             <v-btn
               block
               variant="outlined"
-              prepend-icon="mdi-content-copy"
-              class="mb-2 justify-start"
-              @click="handleCopy"
-            >
-              Copy
-            </v-btn>
-
-            <v-btn
-              block
-              variant="outlined"
               prepend-icon="mdi-archive-outline"
               class="mb-2 justify-start"
               @click="handleArchive"
@@ -344,10 +334,6 @@ const handleAddChecklist = async () => {
   } catch (error) {
     uiStore.showSnackbar('Failed to add checklist', 'error')
   }
-}
-
-const handleCopy = () => {
-  uiStore.showSnackbar('Copy feature coming soon!', 'info')
 }
 
 const handleArchive = async () => {

@@ -47,7 +47,13 @@ const boardStore = useBoardStore()
 
 const boardId = computed(() => {
   const id = route.params.id
-  return typeof id === 'string' ? parseInt(id, 10) : NaN
+  const parsedId = typeof id === 'string' ? parseInt(id, 10) : NaN
+
+  if (isNaN(parsedId) || parsedId <= 0) {
+    return null
+  }
+  
+  return parsedId
 })
 
 const board = computed(() => boardStore.currentBoard)
@@ -65,7 +71,7 @@ const {
 } = useCalendar()
 
 const fetchData = async () => {
-  if (!isNaN(boardId.value)) {
+  if (boardId.value !== null) {
     await boardStore.fetchBoard(boardId.value)
     await fetchCalendarEvents(boardId.value)
   }
@@ -76,19 +82,19 @@ useAutoRefresh(async () => {
 })
 
 watch(filters, async () => {
-  if (!isNaN(boardId.value)) {
+  if (boardId.value !== null) {
     await fetchCalendarEvents(boardId.value)
   }
 }, { deep: true })
 
 watch(boardId, (newId) => {
-  if (!isNaN(newId)) {
+  if (newId !== null) {
     fetchData()
   }
 })
 
 watch(boardId, (newId) => {
-  if (isNaN(newId)) {
+  if (newId === null) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Board not found'
