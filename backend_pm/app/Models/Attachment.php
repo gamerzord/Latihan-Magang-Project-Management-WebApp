@@ -12,6 +12,7 @@ class Attachment extends Model
     protected $fillable = [
         'card_id',
         'type',
+        'file_path',
         'file_name',
         'file_url',
         'display_text',

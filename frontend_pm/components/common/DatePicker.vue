@@ -153,12 +153,10 @@ const emit = defineEmits<Emits>()
 const cardStore = useCardStore()
 const uiStore = useUiStore()
 
-// Reactive state
 const selectedDate = ref('')
 const selectedTime = ref('12:00')
 const completed = ref(false)
 
-// Computed properties
 const hasDueDate = computed(() => {
   return !!props.card?.due_date
 })
@@ -180,6 +178,15 @@ const displayDate = computed(() => {
 
 const fullDateTime = computed(() => {
   if (!selectedDate.value || !selectedTime.value) return null
+
+  const date = new Date(selectedDate.value)
+  if (date instanceof Date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}T${selectedTime.value}:00`
+  }
+
   return `${selectedDate.value}T${selectedTime.value}:00`
 })
 
@@ -262,25 +269,55 @@ function parseExistingDate(dateString: string | null): void {
     return
   }
 
-  const date = new Date(dateString)
-  selectedDate.value = date.toISOString().split('T')[0]!
-  selectedTime.value = date.toISOString().split('T')[1]!.slice(0, 5)
+  try {
+    const date = new Date(dateString)
+
+    if (isNaN(date.getTime())) {
+      selectedDate.value = ''
+      selectedTime.value = '12:00'
+      return
+    }
+
+    selectedDate.value = date.toISOString().split('T')[0]!
+    selectedTime.value = date.toISOString().split('T')[1]!.slice(0, 5)
+  } catch (error) {
+    selectedDate.value = ''
+    selectedTime.value = '12:00'
+  }
 }
 
 const handleSave = async () => {
   if (!props.card || !fullDateTime.value) return
 
   try {
+    const date = new Date(fullDateTime.value) 
+    
+    if (isNaN(date.getTime())) {
+      uiStore.showSnackbar('Invalid date or time selected', 'error')
+      return
+    }
+
+    const isoDateString = date.toISOString()
+
     await cardStore.updateCard(props.card.id, {
-      due_date: fullDateTime.value,
+      due_date: isoDateString,
       due_date_completed: completed.value
     })
-    emit('date-updated', fullDateTime.value)
+    emit('date-updated', isoDateString)
     emit('refresh')
     uiStore.showSnackbar('Due date updated successfully', 'success')
     emit('close')
-  } catch (error) {
-  }
+  } catch (error: any) {
+    console.error('Date update error:', error)
+  
+    if (error.data?.message) {
+        uiStore.showSnackbar(error.data.message, 'error')
+      } else if (error.data?.errors?.due_date) {
+        uiStore.showSnackbar(error.data.errors.due_date[0], 'error')
+      } else {
+        uiStore.showSnackbar('Failed to update due date', 'error')
+      }
+    }
 }
 
 const handleRemove = async () => {

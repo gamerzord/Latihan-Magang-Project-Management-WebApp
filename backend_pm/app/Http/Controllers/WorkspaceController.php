@@ -44,7 +44,9 @@ class WorkspaceController extends Controller
 
     public function show($id)
     {
-        $workspace = Workspace::with(['creator', 'members'])
+        $workspace = Workspace::with(['creator', 'members' => function ($query) {
+            $query->withPivot('role', 'invited_by', 'joined_at');
+        }, 'boards'])
             ->withCount('boards')
             ->find($id);
 

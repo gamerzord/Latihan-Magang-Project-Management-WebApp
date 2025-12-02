@@ -56,7 +56,7 @@ export const useUserStore = defineStore('user', () => {
       
       const userData = await $fetch<{ user: User }>(`${config.public.apiBase}/login`, {
         method: 'POST',
-        body: credentials
+        body: credentials,
       })
       
       setUser(userData.user)

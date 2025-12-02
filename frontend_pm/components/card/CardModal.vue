@@ -193,9 +193,9 @@
 
     <!-- Add Member Dialog -->
     <v-dialog v-model="addMemberDialog" max-width="400">
-      <MemberSelector
+      <CommonMemberSelector
         :card-id="cardId"
-        :current-members="card?.members || []"
+        :current-members="card?.members ? Array.from(card.members) : []"
         @close="addMemberDialog = false"
         @refresh="fetchCard"
       />
@@ -203,7 +203,7 @@
 
     <!-- Add Label Dialog -->
     <v-dialog v-model="addLabelDialog" max-width="400">
-      <LabelManager
+      <CommonLabelManager
         :board-id="card?.list?.board_id || 0"
         :card-id="cardId"
         @close="addLabelDialog = false"
@@ -241,7 +241,7 @@
 
     <!-- Due Date Dialog -->
     <v-dialog v-model="dueDateDialog" max-width="400">
-      <DatePicker
+      <CommonDatePicker
         :card="card"
         @close="dueDateDialog = false"
         @refresh="fetchCard"
@@ -250,7 +250,7 @@
 
     <!-- Attachment Dialog -->
     <v-dialog v-model="attachmentDialog" max-width="500">
-      <AttachmentUploader
+      <CommonAttachmentUploader
         :card-id="cardId"
         @close="attachmentDialog = false"
         @refresh="fetchCard"

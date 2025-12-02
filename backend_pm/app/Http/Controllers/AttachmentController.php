@@ -45,6 +45,7 @@ class AttachmentController extends Controller
             $file = $request->file('file');
             $path = $file->store('attachments', 'public');
             
+            $attachmentData['file_path'] = $path;
             $attachmentData['file_name'] = $file->getClientOriginalName();
             $attachmentData['file_url'] = Storage::url($path);
             $attachmentData['file_size'] = $file->getSize();
@@ -79,9 +80,8 @@ class AttachmentController extends Controller
             ], 403);
         }
 
-        if ($attachment->type === 'file') {
-            $path = str_replace('/storage/', '', $attachment->file_url);
-            Storage::disk('public')->delete($path);
+        if ($attachment->type === 'file' && $attachment->file_path) {
+            Storage::disk('public')->delete($attachment->file_path);
         }
 
         $attachment->delete();
@@ -196,21 +196,15 @@ class AttachmentController extends Controller
             ], 400);
         }
 
-        $path = str_replace('/storage/', '', $attachment->file_url);
-        
-        if (!Storage::disk('public')->exists($path)) {
+        if (!$attachment->file_path || !Storage::exists($attachment->file_path)) {
             return response()->json([
                 'message' => 'File not found'
             ], 404);
         }
 
-        $path = Storage::disk('public')->path($attachment->file_url);
-
-        return response()->download(
-            $path,
-            $attachment->file_name,
-            ['Content-Type' => $attachment->mime_type]
-        );
+        return Storage::download($attachment->file_path, $attachment->file_name, [
+            'Content-Type' => $attachment->mime_type
+        ]);
     }
 
     public function bulkDestroy(Request $request)
@@ -234,9 +228,8 @@ class AttachmentController extends Controller
 
         $deletedCount = 0;
         foreach ($attachments as $attachment) {
-            if ($attachment->type === 'file') {
-                $path = str_replace('/storage/', '', $attachment->file_url);
-                Storage::disk('public')->delete($path);
+            if ($attachment->type === 'file' && $attachment->file_path) {
+                Storage::disk('public')->delete($attachment->file_path);
             }
             
             $attachment->delete();

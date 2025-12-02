@@ -122,13 +122,13 @@
             >
               <template #prepend>
                 <v-avatar color="primary" size="40">
-                  <v-img v-if="member.user?.avatar_url" :src="member.user.avatar_url" />
-                  <span v-else class="text-caption font-weight-medium">{{ getUserInitials(member.user?.name || '') }}</span>
+                  <v-img v-if="member.avatar_url" :src="member.avatar_url" />
+                  <span v-else class="text-caption font-weight-medium">{{ getUserInitials(member.name || '') }}</span>
                 </v-avatar>
               </template>
 
-              <v-list-item-title>{{ member.user?.name }}</v-list-item-title>
-              <v-list-item-subtitle>{{ member.role }}</v-list-item-subtitle>
+              <v-list-item-title>{{ member.name }}</v-list-item-title>
+              <v-list-item-subtitle>{{ member.pivot.role }}</v-list-item-subtitle>
             </v-list-item>
           </v-list>
         </v-card-text>
@@ -167,7 +167,7 @@
 
     <!-- Labels Dialog -->
     <v-dialog v-model="labelsDialog" max-width="500">
-      <LabelManager
+      <CommonLabelManager
         :board-id="board.id"
         @close="labelsDialog = false"
       />

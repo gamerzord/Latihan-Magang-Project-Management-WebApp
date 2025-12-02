@@ -61,7 +61,7 @@
         </div>
 
         <!-- Members -->
-        <v-avatar-group v-if="card.members?.length" density="compact" class="ml-auto">
+        <div class="avatar-group ml-auto" v-if="card.members?.length" density="compact">
           <v-avatar
             v-for="member in card.members.slice(0, 3)"
             :key="member.id"
@@ -74,7 +74,7 @@
           <v-avatar v-if="card.members.length > 3" size="24" color="grey-lighten-2">
             <span class="text-caption text-grey-darken-2">+{{ card.members.length - 3 }}</span>
           </v-avatar>
-        </v-avatar-group>
+        </div>
       </div>
     </v-card-text>
   </v-card>

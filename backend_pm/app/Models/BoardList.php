@@ -9,6 +9,8 @@ class BoardList extends Model
 {
     use HasFactory;
 
+    protected $table = 'lists';
+
     protected $fillable = [
         'board_id',
         'title',

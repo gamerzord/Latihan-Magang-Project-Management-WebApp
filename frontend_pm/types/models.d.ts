@@ -23,15 +23,20 @@ export interface Workspace {
 
 export interface WorkspaceMember {
   id: number
-  workspace_id: number
-  user_id: number
-  role: 'owner' | 'admin' | 'member' | 'guest'
-  invited_by?: number
-  joined_at: string
-  user?: User
-  inviter?: User
+  name: string
+  email: string
+  avatar_url?: string
   created_at: string
   updated_at: string
+  pivot: {
+    workspace_id: number
+    user_id: number
+    role: 'owner' | 'admin' | 'member' | 'guest'
+    invited_by?: number
+    joined_at: string
+    created_at: string
+    updated_at: string
+  }
 }
 
 export interface Board {
@@ -55,14 +60,20 @@ export interface Board {
 
 export interface BoardMember {
   id: number
-  board_id: number
-  user_id: number
-  role: 'admin' | 'member'
-  added_by?: number
-  user?: User
-  added_by_user?: User
+  name: string
+  email: string
+  avatar_url?: string
   created_at: string
   updated_at: string
+  pivot: {
+    board_id: number
+    user_id: number
+    role: 'owner' | 'admin' | 'member' | 'guest'
+    invited_by?: number
+    joined_at: string
+    created_at: string
+    updated_at: string
+  }
 }
 
 export interface List {

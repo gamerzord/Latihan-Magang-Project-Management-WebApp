@@ -3,7 +3,9 @@
     class="board-layout"
     :style="boardBackground"
   >
-    <BoardHeader v-if="board" :board="board" />
+    <BoardHeader v-if="board" :board="board" class="board-header-fixed" />
+
+    <div class="header-spacer"></div>
 
     <!-- Loading State -->
     <div v-if="boardStore.loading" class="d-flex align-center justify-center fill-height">
@@ -122,6 +124,20 @@ watch(boardId, (newId) => {
 </script>
 
 <style scoped>
+.board-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.header-spacer {
+  height: 64px; /* Same as header height */
+}
+
 .board-layout {
   height: 100vh;
   display: flex;

@@ -14,7 +14,7 @@
           </p>
         </div>
 
-        <div class="d-flex gap-2">
+        <div class="d-flex align-center" style="gap: 10px; height: 40px;">
           <v-btn
             color="primary"
             prepend-icon="mdi-plus"
@@ -193,20 +193,20 @@
             >
               <template #prepend>
                 <v-avatar color="primary">
-                  {{ getUserInitials(member.user?.name || '') }}
+                  {{ getUserInitials(member.name || '') }}
                 </v-avatar>
               </template>
 
-              <v-list-item-title>{{ member.user?.name }}</v-list-item-title>
-              <v-list-item-subtitle>{{ member.role }}</v-list-item-subtitle>
+              <v-list-item-title>{{ member.name }}</v-list-item-title>
+              <v-list-item-subtitle>{{ member.pivot.role }}</v-list-item-subtitle>
 
               <template #append>
                 <v-btn
-                  v-if="member.role !== 'owner'"
+                  v-if="member.pivot.role !== 'owner'"
                   icon="mdi-close"
                   size="small"
                   variant="text"
-                  @click="handleRemoveMember(member.user_id)"
+                  @click="handleRemoveMember(member.pivot.user_id)"
                 />
               </template>
             </v-list-item>

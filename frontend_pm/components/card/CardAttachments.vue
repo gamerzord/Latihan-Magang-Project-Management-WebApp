@@ -57,6 +57,7 @@
 
         <template #append>
           <v-btn
+            v-if="attachment.type === 'file'"
             icon="mdi-download"
             size="small"
             variant="text"
