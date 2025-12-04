@@ -11,8 +11,4 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (userStore.isAuthenticated && isPublic) {
     return navigateTo('/')
   }
-
-  if (!userStore.isAuthenticated && !isPublic) {
-    return navigateTo('/login')
-  }
 })

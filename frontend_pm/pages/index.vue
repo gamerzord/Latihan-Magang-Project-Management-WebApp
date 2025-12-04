@@ -1,10 +1,10 @@
 <template>
   <v-container fluid class="pa-0 fill-height">
     <!-- Unauthenticated state -->
-    <v-row v-if="!userStore.isAuthenticated" class="fill-height" align="center" justify="center">
+    <v-row v-if="!userStore.isAuthenticated" class="unauthenticated" align="center" justify="center">
       <v-col cols="12" sm="8" md="6" lg="4">
         <v-card elevation="8" class="pa-6">
-          <v-card-title class="text-h4 text-center py-6 text-primary">
+          <v-card-title class="text-h4 text-center py-6 text-primary text-wrap">
             Welcome to Project Management Web App
           </v-card-title>
           <v-card-text class="text-center pb-6">
@@ -304,6 +304,13 @@ const handleWorkspaceCreated = (workspace: any) => {
 </script>
 
 <style scoped>
+  .unauthenticated {
+    position: fixed;
+    inset: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
 .fill-height {
   min-height: calc(100vh - 64px);
 }

@@ -135,7 +135,7 @@
         :loading="addingMembers"
         :disabled="selectedMembers.length === 0"
       >
-        Add Selected Members
+        {{ actionButtonText }}
       </v-btn>
     </v-card-actions>
   </v-card>
@@ -145,10 +145,14 @@
 import type { User } from '~/types/models'
 
 interface Props {
-  cardId: number
+  cardId?: number
   currentMembers: User[]
   workspaceId?: number
   boardId?: number
+
+  title?: string
+  actionButtonText?: string
+  context?: 'card' | 'workspace' | 'board'
 }
 
 interface Emits {
@@ -157,12 +161,20 @@ interface Emits {
   (event: 'members-added', members: User[]): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  title: 'Add Members',
+  actionButtonText: 'Add Selected Members',
+  context: 'workspace',
+})
+
+
 const emit = defineEmits<Emits>()
 
 const userStore = useUserStore()
 const cardStore = useCardStore()
 const uiStore = useUiStore()
+const workspaceStore = useWorkspaceStore()
+const boardStore = useBoardStore()
 
 const search = ref('')
 const availableUsers = ref<User[]>([])
@@ -199,8 +211,13 @@ const loadAvailableMembers = async () => {
   loading.value = true
   error.value = null
   try {
+    const currentUserId = userStore.currentUser?.id
     const excludeIds = [...props.currentMembers.map(m => m.id), ...selectedMembers.value.map(m => m.id)]
     
+    if (currentUserId && !excludeIds.includes(currentUserId)) {
+      excludeIds.push(currentUserId)
+    }
+
     if (props.workspaceId) {
       availableUsers.value = await userStore.getWorkspaceMembers(props.workspaceId, excludeIds)
     } else if (props.boardId) {
@@ -258,10 +275,26 @@ const handleSaveMembers = async () => {
 
   addingMembers.value = true
   try {
-    for (const member of selectedMembers.value) {
-      await cardStore.addMember(props.cardId, { user_id: member.id })
+
+    if (props.context === 'card' && props.cardId) {
+      for (const member of selectedMembers.value) {
+        await cardStore.addMember(props.cardId, { user_id: member.id })
+      }
+      uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s) to the card`, 'success')
+    } else if (props.context === 'workspace' && props.workspaceId) {
+      for (const member of selectedMembers.value) {
+        await workspaceStore.addMember(props.workspaceId, { user_id: member.id, role: 'member' })
+      }
+      uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s) to the workspace`, 'success')
+    } else if (props.context === 'board' && props.boardId) {
+      for (const member of selectedMembers.value) {
+        await boardStore.addMember(props.boardId, { user_id: member.id, role: 'member' })
+      }
+      uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s) to the board`, 'success')
+    } else {
+      uiStore.showSnackbar('Context not specified for adding members', 'error')
+      return
     }
-    
     emit('members-added', selectedMembers.value)
     emit('refresh')
     uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s)`, 'success')

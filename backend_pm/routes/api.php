@@ -13,6 +13,7 @@ use App\Http\Controllers\ChecklistItemController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\UserController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -23,6 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    Route::get('/users/search', [UserController::class, 'search']); 
     
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -34,10 +37,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('workspaces/{id}/leave', [WorkspaceController::class, 'leave']);
     Route::get('workspaces/{id}/membership', [WorkspaceController::class, 'myMembership']);
 
+    Route::get('workspaces/{workspace}/available-members', [WorkspaceController::class, 'availableMembers']); 
+
     Route::apiResource('boards', BoardController::class);
     Route::post('boards/{id}/members', [BoardController::class, 'addMember']);
     Route::delete('boards/{id}/members/{userId}', [BoardController::class, 'removeMember']);
     Route::patch('boards/{id}/members/{userId}/role', [BoardController::class, 'updateMemberRole']);
+
+    Route::get('boards/{board}/available-members', [BoardController::class, 'availableMembers']); 
 
     Route::apiResource('lists', ListController::class)->except(['index', 'show']);
     Route::post('lists/reorder', [ListController::class, 'reorder']);

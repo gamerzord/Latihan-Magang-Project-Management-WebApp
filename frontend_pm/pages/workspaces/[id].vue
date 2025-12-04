@@ -23,6 +23,14 @@
             Create Board
           </v-btn>
 
+          <v-btn
+            color="secondary"
+            prepend-icon="mdi-account-plus"
+            @click="addMembersDialog = true"
+          >
+            Add Members
+          </v-btn>
+
           <v-menu>
             <template #activator="{ props }">
               <v-btn v-bind="props" icon="mdi-dots-vertical" />
@@ -180,6 +188,17 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="addMembersDialog" max-width="600">
+      <CommonMemberSelector
+        v-if="workspace"
+        :workspace-id="workspaceId"
+        :current-members="[...(workspace.members || [])]"
+        @close="addMembersDialog = false"
+        @members-added="handleMembersAdded"
+        @refresh="fetchWorkspaceData"
+      />
+    </v-dialog>
+
     <!-- Members Dialog -->
     <v-dialog v-model="membersDialog" max-width="600">
       <v-card>
@@ -239,6 +258,7 @@ const boardDialog = ref(false)
 const editDialog = ref(false)
 const membersDialog = ref(false)
 const creating = ref(false)
+const addMembersDialog = ref(false)
 
 const newBoard = reactive({
   title: '',
@@ -304,6 +324,10 @@ const handleCreateBoard = async () => {
   } finally {
     creating.value = false
   }
+}
+
+const handleMembersAdded = (newMembers: any[]) => {
+  console.log('New members added:', newMembers)
 }
 
 const handleEdit = async () => {

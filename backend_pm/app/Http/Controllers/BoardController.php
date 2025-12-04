@@ -239,4 +239,22 @@ class BoardController extends Controller
             'member' => $board->members()->where('user_id', $userId)->first()
         ], 200);
     }
+
+    public function availableMembers($boardId)
+{
+    $board = Board::findOrFail($boardId);
+    
+    $currentUserId = auth()->id();
+    
+    $existingMemberIds = $board->members()->pluck('users.id')->toArray();
+
+    $allexcludeIds = array_merge($existingMemberIds, [$currentUserId]);
+    
+    $workspaceMembers = $board->workspace->members()
+        ->whereNotIn('users.id', $allexcludeIds)
+        ->orderBy('name')
+        ->get(['id', 'name', 'email', 'avatar_url']);
+    
+    return response()->json(['members' => $workspaceMembers]);
+}
 }

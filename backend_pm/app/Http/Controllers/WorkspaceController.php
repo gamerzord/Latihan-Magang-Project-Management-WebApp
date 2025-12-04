@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Workspace;
+use App\Models\User;
 
 class WorkspaceController extends Controller
 {
@@ -259,4 +260,21 @@ class WorkspaceController extends Controller
             ]
         ], 200);
     }
+
+    public function availableMembers($workspaceId)
+{
+    $workspace = Workspace::findOrFail($workspaceId);
+    
+    $currentUserId = auth()->id();
+    
+    $existingMemberIds = $workspace->members()->pluck('users.id')->toArray();
+
+    $allexcludeIds = array_merge($existingMemberIds, [$currentUserId]);
+    
+    $availableUsers = User::whereNotIn('id', $allexcludeIds)
+        ->orderBy('name')
+        ->get(['id', 'name', 'email', 'avatar_url']);
+    
+    return response()->json(['members' => $availableUsers]);
+}
 }
