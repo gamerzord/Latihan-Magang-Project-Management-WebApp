@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\BoardList;
 use App\Models\Card;
+use App\Models\Label;
 
 class CardController extends Controller
 {
@@ -164,8 +165,10 @@ class CardController extends Controller
             $card->labels()->attach($data['label_id']);
         }
 
+        $label = Label::find($data['label_id']);
+
         return response()->json([
-            'card' => $card->load('labels')
+            'label' => $label,
         ]);
     }
 
@@ -189,6 +192,11 @@ class CardController extends Controller
     public function addMember(Request $request, $id)
     {
         $card = Card::find($id);
+        $board = $card->board;
+        
+        if (!$board->isMember(auth()->id())) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         if (!$card) {
             return response()->json([
@@ -200,15 +208,22 @@ class CardController extends Controller
             'user_id' => 'required|exists:users,id',
         ]);
 
-        if (!$card->members()->where('user_id', $data['user_id'])->exists()) {
-            $card->members()->attach($data['user_id'], [
-                'assigned_by' => auth()->id(),
-            ]);
+        if ($card->members()->where('user_id', $data['user_id'])->exists()) {
+            return response()->json([
+                'message' => 'User is already a member of this card'
+            ], 422);
         }
 
-        return response()->json([
-            'card' => $card->load('members')
+        $card->members()->attach($data['user_id'], [
+            'assigned_by' => auth()->id(),
         ]);
+
+        $member = $card->members()->where('user_id', $data['user_id'])->first();
+
+        return response()->json([
+            'message' => 'Member added successfully',
+            'member' => $member
+        ], 200);
     }
 
     public function removeMember($id, $userId)
@@ -221,11 +236,19 @@ class CardController extends Controller
             ], 404);
         }
 
+        $board = $card->board;
+
+        if (!$board->isMember(auth()->id())) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
         $card->members()->detach($userId);
 
         return response()->json([
-            'card' => $card->load('members')
-        ]);
+            'message' => 'Member removed successfully'
+        ], 200);
     }
 
     public function archive($id)

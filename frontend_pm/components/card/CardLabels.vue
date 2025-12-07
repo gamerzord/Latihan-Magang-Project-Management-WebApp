@@ -41,6 +41,7 @@ const handleRemove = async (labelId: number) => {
     await cardStore.removeLabel(props.card.id, labelId)
     emit('refresh')
   } catch (error) {
+    uiStore.showSnackbar('Failed to remove label from card.', 'error')
   }
 }
 

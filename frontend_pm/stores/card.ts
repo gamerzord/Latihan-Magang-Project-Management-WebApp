@@ -12,7 +12,9 @@ import type {
   CreateChecklistItemRequest,
   UpdateChecklistItemRequest,
   ReorderChecklistsRequest,
-  ReorderChecklistItemsRequest
+  ReorderChecklistItemsRequest,
+  Label,
+  BoardMember,
 } from '~/types/models'
 
 export const useCardStore = defineStore('card', () => {
@@ -56,7 +58,9 @@ export const useCardStore = defineStore('card', () => {
     loading.value = true
     error.value = null
     try {
-      currentCard.value = (await $fetch<{ card: Card} >(`${config.public.apiBase}/cards/${id}`)).card
+      const response = await $fetch<{ card: Card} >(`${config.public.apiBase}/cards/${id}`)
+      currentCard.value = response.card
+      return response.card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch card'
     } finally {
@@ -68,7 +72,7 @@ export const useCardStore = defineStore('card', () => {
     loading.value = true
     error.value = null
     try {
-      const card = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards`, {
+      const response = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards`, {
         method: 'POST',
         body: data
       })
@@ -77,14 +81,14 @@ export const useCardStore = defineStore('card', () => {
         const updatedLists = boardStore.currentBoard.lists.map(list => {
           if (list.id === data.list_id) {
             const currentCards = list.cards || []
-            return { ...list, cards: [...currentCards, card.card ]}
+            return { ...list, cards: [...currentCards, response.card ]}
         }
           return list
       })
         boardStore.updateLocalBoard({ lists: updatedLists })
       }
       
-      return card
+      return response.card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create card'
       throw err
@@ -95,18 +99,18 @@ export const useCardStore = defineStore('card', () => {
 
   const updateCard = async (id: number, data: UpdateCardRequest) => {
     try {
-      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${id}`, {
+      const response = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${id}`, {
         method: 'PUT',
         body: data
       })
       
       if (currentCard.value?.id === id) {
-        currentCard.value = { ...currentCard.value, ...updated.card }
+        currentCard.value = { ...currentCard.value, ...response.card }
       }
       
-      updateCardInBoardStore(id, updated.card)
+      updateCardInBoardStore(id, response.card)
       
-      return updated
+      return response.card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update card'
       throw err
@@ -175,7 +179,7 @@ export const useCardStore = defineStore('card', () => {
 
   const addLabel = async (cardId: number, data: AddLabelRequest) => {
     try {
-      const result = await $fetch(`${config.public.apiBase}/cards/${cardId}/labels`, {
+      const response = await $fetch<{ label: Label }>(`${config.public.apiBase}/cards/${cardId}/labels`, {
         method: 'POST',
         body: data
       })
@@ -184,7 +188,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(cardId)
       }
       
-      return result
+      return response.label
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to add label'
       throw err
@@ -208,7 +212,7 @@ export const useCardStore = defineStore('card', () => {
 
   const addMember = async (cardId: number, data: AddCardMemberRequest) => {
     try {
-      const result = await $fetch(`${config.public.apiBase}/cards/${cardId}/members`, {
+      const response = await $fetch<{ member: BoardMember }>(`${config.public.apiBase}/cards/${cardId}/members`, {
         method: 'POST',
         body: data
       })
@@ -217,7 +221,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(cardId)
       }
       
-      return result
+      return response.member
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to add member'
       throw err
@@ -241,16 +245,16 @@ export const useCardStore = defineStore('card', () => {
 
   const archiveCard = async (cardId: number) => {
     try {
-      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/archive`, {
+      const response = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/archive`, {
         method: 'POST'
       })
       
-      updateCardInBoardStore(cardId, updated.card)
+      updateCardInBoardStore(cardId, response.card)
       if (currentCard.value?.id === cardId) {
-        currentCard.value = updated.card
+        currentCard.value = response.card
       }
       
-      return updated
+      return response.card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to archive card'
       throw err
@@ -259,16 +263,16 @@ export const useCardStore = defineStore('card', () => {
 
   const restoreCard = async (cardId: number) => {
     try {
-      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/restore`, {
+      const response = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/restore`, {
         method: 'POST'
       })
       
-      updateCardInBoardStore(cardId, updated.card)
+      updateCardInBoardStore(cardId, response.card)
       if (currentCard.value?.id === cardId) {
-        currentCard.value = updated.card
+        currentCard.value = response.card
       }
       
-      return updated
+      return response.card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to restore card'
       throw err
@@ -277,16 +281,16 @@ export const useCardStore = defineStore('card', () => {
 
   const toggleDueDateCompletion = async (cardId: number) => {
     try {
-      const updated = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/toggle-due`, {
+      const response = await $fetch<{ card: Card }>(`${config.public.apiBase}/cards/${cardId}/toggle-due`, {
         method: 'POST'
       })
       
-      updateCardInBoardStore(cardId, updated.card)
+      updateCardInBoardStore(cardId, response.card)
       if (currentCard.value?.id === cardId) {
-        currentCard.value = updated.card
+        currentCard.value = response.card
       }
       
-      return updated
+      return response.card
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to toggle due date'
       throw err
@@ -295,7 +299,7 @@ export const useCardStore = defineStore('card', () => {
 
   const createChecklist = async (data: CreateChecklistRequest) => {
     try {
-      const checklist = await $fetch<{ checklist: Checklist }>(`${config.public.apiBase}/checklists`, {
+      const response = await $fetch<{ checklist: Checklist }>(`${config.public.apiBase}/checklists`, {
         method: 'POST',
         body: data
       })
@@ -304,7 +308,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(data.card_id)
       }
       
-      return checklist
+      return response.checklist
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create checklist'
       throw err
@@ -313,7 +317,7 @@ export const useCardStore = defineStore('card', () => {
 
   const updateChecklist = async (id: number, data: UpdateChecklistRequest) => {
     try {
-      const updated = await $fetch<{ checklist: Checklist }>(`${config.public.apiBase}/checklists/${id}`, {
+      const response = await $fetch<{ checklist: Checklist }>(`${config.public.apiBase}/checklists/${id}`, {
         method: 'PUT',
         body: data
       })
@@ -322,7 +326,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(currentCard.value.id)
       }
       
-      return updated
+      return response.checklist
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update checklist'
       throw err
@@ -362,7 +366,7 @@ export const useCardStore = defineStore('card', () => {
 
   const createChecklistItem = async (data: CreateChecklistItemRequest) => {
     try {
-      const item = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items`, {
+      const response = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items`, {
         method: 'POST',
         body: data
       })
@@ -371,7 +375,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(currentCard.value.id)
       }
       
-      return item
+      return response.item
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create checklist item'
       throw err
@@ -380,7 +384,7 @@ export const useCardStore = defineStore('card', () => {
 
   const updateChecklistItem = async (id: number, data: UpdateChecklistItemRequest) => {
     try {
-      const updated = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items/${id}`, {
+      const response = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items/${id}`, {
         method: 'PUT',
         body: data
       })
@@ -389,7 +393,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(currentCard.value.id)
       }
       
-      return updated
+      return response.item
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update checklist item'
       throw err
@@ -429,7 +433,7 @@ export const useCardStore = defineStore('card', () => {
 
   const toggleChecklistItem = async (id: number, completed: boolean) => {
     try {
-      const updated = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items/${id}/toggle`, {
+      const response = await $fetch<{ item: ChecklistItem }>(`${config.public.apiBase}/checklist-items/${id}/toggle`, {
         method: 'POST',
         body: { completed }
       })
@@ -438,7 +442,7 @@ export const useCardStore = defineStore('card', () => {
         await fetchCard(currentCard.value.id)
       }
       
-      return updated
+      return response.item
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to toggle checklist item'
       throw err

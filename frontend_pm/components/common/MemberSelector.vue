@@ -63,6 +63,30 @@
           </v-list-item-subtitle>
 
           <template #append>
+            <v-select 
+              v-if="shouldShowRoleSelector && canAssignRoles"
+              v-model="selectedRoles[user.id]"
+              :items="ROLE_OPTIONS"
+              item-title="label"
+              item-value="value"
+              density="compact"
+              variant="outlined"
+              hide-details
+              style="width: 100px;"
+              class="mr-2" />
+
+              <v-select 
+              v-if="shouldShowBoardRoleSelector && canAssignRoles"
+              v-model="selectedRoles[user.id]"
+              :items="BOARD_ROLE_OPTIONS"
+              item-title="label"
+              item-value="value"
+              density="compact"
+              variant="outlined"
+              hide-details
+              style="width: 100px;"
+              class="mr-2" />
+
             <v-icon 
               v-if="isMember(user.id)" 
               color="success"
@@ -153,6 +177,7 @@ interface Props {
   title?: string
   actionButtonText?: string
   context?: 'card' | 'workspace' | 'board'
+  visibility?: 'private' | 'workspace' | 'public'
 }
 
 interface Emits {
@@ -165,6 +190,7 @@ const props = withDefaults(defineProps<Props>(), {
   title: 'Add Members',
   actionButtonText: 'Add Selected Members',
   context: 'workspace',
+  visibility: 'private',
 })
 
 
@@ -182,7 +208,49 @@ const selectedMembers = ref<User[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const addingMembers = ref(false)
+const selectedRoles = ref<Record<number, string>>({})
 const searchTimeout = ref<ReturnType<typeof setTimeout>>()
+
+const ROLE_OPTIONS = computed(() => {
+  if (props.context === 'workspace' && props.visibility === 'private') {
+    return [
+      { label: 'Member', value: 'member' },
+      { label: 'Admin', value: 'admin' },
+    ]
+  }
+  return [{ label: 'Member', value: 'member' }]
+})
+
+const BOARD_ROLE_OPTIONS = computed(() => {
+  if (props.context === 'board' && props.visibility === 'private') {
+    return [
+      { label: 'Member', value: 'member' },
+      { label: 'Admin', value: 'admin' },
+    ]
+  }
+  return [{ label: 'Member', value: 'member' }]
+})
+
+const shouldShowRoleSelector = computed(() => {
+  return props.context === 'workspace' && props.visibility === 'private'
+})
+
+const shouldShowBoardRoleSelector = computed(() => {
+  return props.context === 'board' && props.visibility === 'private'
+})
+
+const defaultRole = computed(() => {
+  if (props.context === 'workspace') {
+    return props.visibility === 'private' ? 'member' : 'member'
+  } else if (props.context === 'board') {
+    return props.visibility === 'private' ? 'member' : 'member'
+  }
+  return 'member'
+})
+
+const canAssignRoles = computed(() => {
+  return props.context === 'workspace' || props.context === 'board'
+})
 
 const filteredUsers = computed(() => {
   if (!search.value) return availableUsers.value
@@ -218,10 +286,12 @@ const loadAvailableMembers = async () => {
       excludeIds.push(currentUserId)
     }
 
-    if (props.workspaceId) {
+    if (props.context === 'workspace' && props.workspaceId) {
       availableUsers.value = await userStore.getWorkspaceMembers(props.workspaceId, excludeIds)
-    } else if (props.boardId) {
-      availableUsers.value = await userStore.getBoardMembers(props.boardId, excludeIds)
+    } else if (props.context === 'board' && props.workspaceId) {
+      availableUsers.value = await userStore.getWorkspaceMembers(props.workspaceId, excludeIds)
+    } else if (props.context === 'card') {
+      availableUsers.value = await userStore.getBoardMembers(props.boardId!, excludeIds)
     } else {
       availableUsers.value = await userStore.searchUsers('', excludeIds)
     }
@@ -261,8 +331,10 @@ const performSearch = async () => {
 const handleToggleMember = (user: User) => {
   if (isMember(user.id)) {
     selectedMembers.value = selectedMembers.value.filter(m => m.id !== user.id)
+    delete selectedRoles.value[user.id]
   } else {
     selectedMembers.value.push(user)
+    selectedRoles.value[user.id] = defaultRole.value
   }
 }
 
@@ -283,12 +355,14 @@ const handleSaveMembers = async () => {
       uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s) to the card`, 'success')
     } else if (props.context === 'workspace' && props.workspaceId) {
       for (const member of selectedMembers.value) {
-        await workspaceStore.addMember(props.workspaceId, { user_id: member.id, role: 'member' })
+        const role = (selectedRoles.value[member.id] || defaultRole.value) as 'member' | 'admin'
+        await workspaceStore.addMember(props.workspaceId, { user_id: member.id, role: role })
       }
       uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s) to the workspace`, 'success')
     } else if (props.context === 'board' && props.boardId) {
       for (const member of selectedMembers.value) {
-        await boardStore.addMember(props.boardId, { user_id: member.id, role: 'member' })
+        const role = (selectedRoles.value[member.id] || defaultRole.value) as 'member' | 'admin'
+        await boardStore.addMember(props.boardId, { user_id: member.id, role: role })
       }
       uiStore.showSnackbar(`Added ${selectedMembers.value.length} member(s) to the board`, 'success')
     } else {

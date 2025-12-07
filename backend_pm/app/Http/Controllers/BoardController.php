@@ -9,14 +9,27 @@ class BoardController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
         $workspaceId = $request->query('workspace_id');
-        
+
         if ($workspaceId) {
-            $boards = Board::where('workspace_id', $workspaceId)
+            $boards = Board::query()
+                ->where('workspace_id', $workspaceId)
+                ->where(function ($q) use ($user) {
+                    $q->where('visibility', 'public')
+                    ->orWhereHas('members', function ($m) use ($user) {
+                        $m->where('user_id', $user->id);
+                    })
+                    ->orWhere('created_by', $user->id)
+                    ->orWhereHas('workspace.members', function ($wm) use ($user) {
+                        $wm->where('user_id', $user->id);
+                    });
+                })
                 ->with(['creator', 'workspace'])
                 ->get();
+
         } else {
-            $boards = $request->user()->boards()
+            $boards = $user->boards()
                 ->with(['creator', 'workspace'])
                 ->get();
         }
@@ -66,10 +79,27 @@ class BoardController extends Controller
             return response()->json(['message' => 'Board not found'], 404);
         }
 
-        if (!$board->isMember(auth()->id()) && $board->visibility !== 'public') {
-            return response()->json([
-                'message' => 'Unauthorized'
-            ], 403);
+        $userId = auth()->id();
+        $workspace = $board->workspace;
+
+        $allowed = false;
+
+        if ($board->visibility === 'public') {
+            $allowed = true;
+        }
+
+        elseif ($board->visibility === 'private') {
+            $allowed = $board->isMember($userId);
+        }
+
+        elseif ($board->visibility === 'workspace') {
+            $allowed =
+                $workspace->members()->where('user_id', $userId)->exists() ||
+                $board->isMember($userId);
+        }
+
+        if (!$allowed) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         return response()->json([
@@ -195,6 +225,36 @@ class BoardController extends Controller
         ], 200);
     }
 
+    public function leave($id)
+{
+    $board = Board::find($id);
+
+    if (!$board) {
+        return response()->json(['message' => 'Board not found'], 404);
+    }
+
+    $userId = auth()->id();
+
+    if (!$board->isMember($userId)) {
+        return response()->json(['message' => 'You are not a member of this board'], 422);
+    }
+
+    if ($board->hasRole($userId, 'admin')) {
+        $adminCount = $board->members()->wherePivot('role', 'admin')->count();
+        if ($adminCount <= 1) {
+            return response()->json([
+                'message' => 'Cannot leave the board as the only admin. Transfer admin role to someone else first.'
+            ], 422);
+        }
+    }
+
+    $board->members()->detach($userId);
+
+    return response()->json([
+        'message' => 'Successfully left the board'
+    ], 200);
+}
+
     public function updateMemberRole(Request $request, $id, $userId)
     {
         $board = Board::find($id);
@@ -241,20 +301,20 @@ class BoardController extends Controller
     }
 
     public function availableMembers($boardId)
-{
-    $board = Board::findOrFail($boardId);
-    
-    $currentUserId = auth()->id();
-    
-    $existingMemberIds = $board->members()->pluck('users.id')->toArray();
+    {
+        $board = Board::findOrFail($boardId);
+        
+        $currentUserId = auth()->id();
+        
+        $existingMemberIds = $board->members()->pluck('users.id')->toArray();
 
-    $allexcludeIds = array_merge($existingMemberIds, [$currentUserId]);
-    
-    $workspaceMembers = $board->workspace->members()
-        ->whereNotIn('users.id', $allexcludeIds)
-        ->orderBy('name')
-        ->get(['id', 'name', 'email', 'avatar_url']);
-    
-    return response()->json(['members' => $workspaceMembers]);
-}
+        $allexcludeIds = array_merge($existingMemberIds, [$currentUserId]);
+        
+        $workspaceMembers = $board->workspace->members()
+            ->whereNotIn('users.id', $allexcludeIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'avatar_url']);
+        
+        return response()->json(['members' => $workspaceMembers]);
+    }
 }

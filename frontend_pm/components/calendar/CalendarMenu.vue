@@ -141,29 +141,29 @@
                   v-for="member in board.members"
                   :key="member.id"
                   class="member-item"
-                  :class="{ 'member-item--selected': isMemberSelected(member.user_id) }"
-                  @click="toggleMember(member.user_id)"
+                  :class="{ 'member-item--selected': isMemberSelected(member.pivot.user_id) }"
+                  @click="toggleMember(member.pivot.user_id)"
                 >
                   <template #prepend>
                     <v-avatar size="32" color="primary" class="member-avatar">
-                      <v-img v-if="member.user?.avatar_url" :src="member.user.avatar_url" />
+                      <v-img v-if="member.avatar_url" :src="member.avatar_url" />
                       <span v-else class="text-caption font-weight-medium">
-                        {{ getUserInitials(member.user?.name || '') }}
+                        {{ getUserInitials(member.name || '') }}
                       </span>
                     </v-avatar>
                   </template>
 
                   <v-list-item-title class="text-body-2">
-                    {{ member.user?.name }}
+                    {{ member.name }}
                   </v-list-item-title>
                   
                   <v-list-item-subtitle class="text-caption">
-                    {{ member.role }}
+                    {{ member.pivot.role }}
                   </v-list-item-subtitle>
 
                   <template #append>
                     <v-icon 
-                      v-if="isMemberSelected(member.user_id)" 
+                      v-if="isMemberSelected(member.pivot.user_id)" 
                       color="success"
                       size="small"
                     >

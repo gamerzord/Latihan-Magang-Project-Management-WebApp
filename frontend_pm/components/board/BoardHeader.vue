@@ -22,7 +22,7 @@
       @keyup.esc="cancelEdit"
     />
     <v-btn
-      v-else
+      v-else-if="canEditBoard"
       variant="text"
       color="white"
       class="text-h6 font-weight-bold"
@@ -30,6 +30,13 @@
     >
       {{ board.title }}
     </v-btn>
+
+    <div
+      v-else
+      class="text-h6 font-weight-bold white--text"
+    >
+      {{ board.title }}
+    </div>
 
     <v-chip
       :prepend-icon="visibilityIcon"
@@ -51,15 +58,29 @@
     />
 
     <v-btn
+      v-if="canManageBoard"
+      prepend-icon="mdi-account-plus"
+      variant="text"
+      color="white"
+      @click="addMembersDialog = true"
+      size="small"
+      class="mr-1"
+    >
+      Add Members
+    </v-btn>
+
+    <v-btn
       prepend-icon="mdi-account-multiple"
       variant="text"
       color="white"
       @click="membersDialog = true"
+      size="small"
     >
       Members
+      <span class="ml-1">({{ board.members?.length || 0 }})</span>
     </v-btn>
 
-    <v-menu>
+    <v-menu v-if="canManageBoard">
       <template #activator="{ props }">
         <v-btn
           v-bind="props"
@@ -100,19 +121,52 @@
 
         <v-divider />
 
-        <v-list-item @click="handleArchive">
+        <v-list-item
+          v-if="!isBoardOwner"
+          @click="handleLeaveBoard"
+        >
+          <template #prepend>
+            <v-icon color="warning">mdi-exit-to-app</v-icon>
+          </template>
+          <v-list-item-title class="text-warning">Leave Board</v-list-item-title>
+        </v-list-item>
+
+        <v-list-item v-if="canManageBoard" @click="handleArchive">
           <template #prepend>
             <v-icon>mdi-archive</v-icon>
           </template>
           <v-list-item-title>Archive Board</v-list-item-title>
         </v-list-item>
+
+        <v-list-item
+          v-if="isBoardOwner"
+          @click="handleDeleteBoard"
+        >
+          <template #prepend>
+            <v-icon color="error">mdi-delete</v-icon>
+          </template>
+          <v-list-item-title class="text-error">Delete Board</v-list-item-title>
+        </v-list-item>
       </v-list>
     </v-menu>
+
+    <v-dialog v-model="addMembersDialog" max-width="600">
+      <CommonMemberSelector
+        v-if="board"
+        :board-id="board.workspace_id"
+        :current-members="[...(board.members || [])]"
+        :visibility="board.visibility"
+        context="board"
+        @close="addMembersDialog = false"
+        @members-added="handleMembersAdded"
+        @refresh="$emit('refresh')"
+      />
+    </v-dialog>
 
     <!-- Members Dialog -->
     <v-dialog v-model="membersDialog" max-width="500">
       <v-card>
-        <v-card-title>Board Members</v-card-title>
+        <v-card-title>{{ canManageBoard ? 'Manage Members' : 'Board Members' }}</v-card-title>
         
         <v-card-text>
           <v-list>
@@ -128,7 +182,23 @@
               </template>
 
               <v-list-item-title>{{ member.name }}</v-list-item-title>
-              <v-list-item-subtitle>{{ member.pivot.role }}</v-list-item-subtitle>
+              <v-list-item-subtitle>
+                <v-chip size="x-small" :color="getRoleColor(member.pivot.role)">
+                  {{ member.pivot.role }}
+                </v-chip>
+                <span v-if="member.id === board.creator_id" class="ml-1">👑</span>
+                <span v-if="member.id === userStore.user?.id" class="ml-1">(You)</span>
+              </v-list-item-subtitle>
+
+              <template #append>
+                <v-btn
+                  v-if="canManageBoard && member.id !== board.creator_id && member.id !== userStore.user?.id"
+                  icon="mdi-close"
+                  variant="text"
+                  size="small"
+                  @click.stop="handleRemoveMember(member.pivot.user_id)"
+                />
+              </template>
             </v-list-item>
           </v-list>
         </v-card-text>
@@ -201,6 +271,8 @@
             item-value="value"
             label="Visibility"
             variant="outlined"
+            :hint="getVisibilityHint(settingsForm.visibility)"
+            persistent-hint
           />
         </v-card-text>
         
@@ -221,10 +293,16 @@ interface Props {
   board: Board
 }
 
+interface Emits {
+  (event: 'refresh'): void
+}
+
 const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
 const boardStore = useBoardStore()
 const uiStore = useUiStore()
+const userStore = useUserStore()
 
 const editing = ref(false)
 const boardTitle = ref(props.board.title)
@@ -232,6 +310,7 @@ const membersDialog = ref(false)
 const backgroundDialog = ref(false)
 const labelsDialog = ref(false)
 const settingsDialog = ref(false)
+const addMembersDialog = ref(false)
 
 const settingsForm = reactive({
   title: props.board.title,
@@ -259,10 +338,32 @@ const VISIBILITY_OPTIONS = [
   { label: 'Public', value: 'public' }
 ]
 
+const currentUserRole = computed(() => {
+  if (!props.board || !userStore.user) return null
+  const member = props.board.members?.find(m => m.id === userStore.user?.id)
+  return member?.pivot?.role || null
+})
+
+const isBoardOwner = computed(() => {
+  return props.board?.creator_id === userStore.user?.id
+})
+
+const isBoardAdmin = computed(() => {
+  return currentUserRole.value === 'admin' || isBoardOwner.value
+})
+
+const canManageBoard = computed(() => {
+  return isBoardAdmin.value
+})
+
+const canEditBoard = computed(() => {
+  return isBoardAdmin.value
+})
+
 const visibilityIcon = computed(() => {
   const icons = {
     private: 'mdi-lock',
-    workspace: 'mdi-home',
+    workspace: 'mdi-account-group',
     public: 'mdi-earth'
   }
   return icons[props.board.visibility]
@@ -276,6 +377,24 @@ const visibilityText = computed(() => {
   }
   return texts[props.board.visibility]
 })
+
+const getVisibilityHint = (visibility: string) => {
+  switch (visibility) {
+    case 'private': return 'Only invited members can access'
+    case 'workspace': return 'Visible to workspace members, requires invitation to access'
+    case 'public': return 'Visible to everyone'
+    default: return ''
+  }
+}
+
+const getRoleColor = (role: string) => {
+  switch (role) {
+    case 'owner': return 'amber'
+    case 'admin': return 'blue'
+    case 'member': return 'grey'
+    default: return 'grey-lighten-1'
+  }
+}
 
 const getUserInitials = (name: string): string => {
   return name
@@ -348,6 +467,47 @@ const handleArchive = async () => {
   } catch (error) {
     uiStore.showSnackbar('Failed to archive board', 'error')
   }
+}
+
+const handleDeleteBoard = async () => {
+  if (!confirm('Are you sure you want to delete this board and all its lists/cards? This action cannot be undone.')) return
+
+  try {
+    await boardStore.deleteBoard(props.board.id)
+    uiStore.showSnackbar('Board deleted', 'success')
+    navigateTo(`/workspaces/${props.board.workspace_id}`)
+  } catch (error) {
+    uiStore.showSnackbar('Failed to delete board', 'error')
+  }
+}
+
+const handleLeaveBoard = async () => {
+  if (!confirm(`Are you sure you want to leave "${props.board.title}"?`)) return
+  
+  try {
+    await boardStore.leaveBoard(props.board.id)
+    uiStore.showSnackbar(`Left ${props.board.title}`, 'success')
+    navigateTo(`/workspaces/${props.board.workspace_id}`)
+  } catch (error) {
+    uiStore.showSnackbar('Failed to leave board', 'error')
+  }
+}
+
+const handleRemoveMember = async (userId: number) => {
+  if (!confirm('Are you sure you want to remove this member from the board?')) return
+  
+  try {
+    await boardStore.removeMember(props.board.id, userId)
+    uiStore.showSnackbar('Member removed', 'success')
+    emit('refresh')
+  } catch (error) {
+    uiStore.showSnackbar('Failed to remove member', 'error')
+  }
+}
+
+const handleMembersAdded = (newMembers: any[]) => {
+  uiStore.showSnackbar(`Added ${newMembers.length} member(s) to the board`, 'success')
+  emit('refresh')
 }
 
 const calendarView = () => {

@@ -262,19 +262,19 @@ class WorkspaceController extends Controller
     }
 
     public function availableMembers($workspaceId)
-{
-    $workspace = Workspace::findOrFail($workspaceId);
-    
-    $currentUserId = auth()->id();
-    
-    $existingMemberIds = $workspace->members()->pluck('users.id')->toArray();
+    {
+        $workspace = Workspace::findOrFail($workspaceId);
+        
+        $currentUserId = auth()->id();
+        
+        $existingMemberIds = $workspace->members()->pluck('users.id')->toArray();
 
-    $allexcludeIds = array_merge($existingMemberIds, [$currentUserId]);
-    
-    $availableUsers = User::whereNotIn('id', $allexcludeIds)
-        ->orderBy('name')
-        ->get(['id', 'name', 'email', 'avatar_url']);
-    
-    return response()->json(['members' => $availableUsers]);
-}
+        $allexcludeIds = array_merge($existingMemberIds, [$currentUserId]);
+        
+        $availableUsers = User::whereNotIn('id', $allexcludeIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'avatar_url']);
+        
+        return response()->json(['members' => $availableUsers]);
+    }
 }

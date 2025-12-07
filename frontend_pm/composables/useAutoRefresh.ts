@@ -26,5 +26,5 @@ export const useAutoRefresh = (fetchFunction: () => Promise<void>) => {
     pause()
   })
 
-  return { resume, pause, isActive: readonly(isActive) }
+  return { resume, pause, isActive: isActive }
 }

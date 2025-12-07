@@ -1,8 +1,8 @@
 <template>
   <div class="card-members">
-    <v-avatar-group density="compact" max="3">
+    <div class="avatar-group">
       <v-tooltip
-        v-for="member in card.members || []"
+        v-for="member in limitedMembers"
         :key="member.id"
         :text="member.name"
         location="top"
@@ -21,31 +21,37 @@
           </v-avatar>
         </template>
       </v-tooltip>
-    </v-avatar-group>
+
+      <!-- +X more indicator -->
+      <v-avatar
+        v-if="extraCount > 0"
+        size="32"
+        color="grey-lighten-2"
+        class="member-avatar more"
+      >
+        <span class="text-caption font-weight-medium">
+          +{{ extraCount }}
+        </span>
+      </v-avatar>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Card } from '~/types/models'
 
-interface Props {
-  card: Card
-}
+const props = defineProps<{ card: Card }>()
 
-interface Emits {
-  (event: 'refresh'): void
-}
+const max = 3
+const limitedMembers = computed(() => props.card.members?.slice(0, max) ?? [])
+const extraCount = computed(() => (props.card.members?.length ?? 0) - max)
 
-defineProps<Props>()
-defineEmits<Emits>()
-
-const getUserInitials = (name: string): string => {
-  return name
+const getUserInitials = (name: string): string =>
+  name
     .split(' ')
     .map(part => part.charAt(0).toUpperCase())
     .join('')
     .slice(0, 2)
-}
 </script>
 
 <style scoped>
@@ -53,21 +59,36 @@ const getUserInitials = (name: string): string => {
   min-height: 32px;
 }
 
+.avatar-group {
+  display: flex;
+  align-items: center;
+}
+
 .member-avatar {
   border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-left: -10px;
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.member-avatar:first-child {
+  margin-left: 0;
 }
 
 .member-avatar:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1;
+  z-index: 5;
+}
+
+.more {
+  background-color: #e0e0e0;
+  color: #555;
 }
 
 @media (max-width: 768px) {
   .member-avatar {
-    size: 28px;
+    width: 28px;
+    height: 28px;
   }
 }
 </style>

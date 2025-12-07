@@ -1,4 +1,4 @@
-import type { Board, CreateBoardRequest, UpdateBoardRequest, AddBoardMemberRequest } from '~/types/models'
+import type { Board, CreateBoardRequest, UpdateBoardRequest, AddBoardMemberRequest, BoardMember } from '~/types/models'
 
 export const useBoardStore = defineStore('board', () => {
   const boards = ref<Board[]>([])
@@ -32,7 +32,9 @@ export const useBoardStore = defineStore('board', () => {
         ? `${config.public.apiBase}/boards?workspace_id=${workspaceId}`
         : `${config.public.apiBase}/boards`
       
-      boards.value = (await $fetch<{ boards: Board[]} >(url)).boards
+      const response = await $fetch<{ boards: Board[]} >(url)
+      boards.value = response.boards
+      return response.boards
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch boards'
     } finally {
@@ -44,7 +46,9 @@ export const useBoardStore = defineStore('board', () => {
     loading.value = true
     error.value = null
     try {
-      currentBoard.value = (await $fetch<{ board: Board} >(`${config.public.apiBase}/boards/${id}`)).board
+      const response = await $fetch<{ board: Board} >(`${config.public.apiBase}/boards/${id}`)
+      currentBoard.value = response.board
+      return response.board
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch board'
       throw err
@@ -57,12 +61,12 @@ export const useBoardStore = defineStore('board', () => {
     loading.value = true
     error.value = null
     try {
-      const board = await $fetch<{ board: Board }>(`${config.public.apiBase}/boards`, {
+      const response = await $fetch<{ board: Board }>(`${config.public.apiBase}/boards`, {
         method: 'POST',
         body: data
       })
-      boards.value.push(board.board)
-      return board
+      boards.value.push(response.board)
+      return response.board
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create board'
       throw err
@@ -73,18 +77,18 @@ export const useBoardStore = defineStore('board', () => {
 
   const updateBoard = async (id: number, data: UpdateBoardRequest) => {
     try {
-      const updated = await $fetch<{ board: Board }>(`${config.public.apiBase}/boards/${id}`, {
+      const response = await $fetch<{ board: Board }>(`${config.public.apiBase}/boards/${id}`, {
         method: 'PUT',
         body: data
       })
       const index = boards.value.findIndex(b => b.id === id)
       if (index !== -1) {
-        boards.value[index] = updated.board
+        boards.value[index] = response.board
       }
       if (currentBoard.value?.id === id) {
-        currentBoard.value = { ...currentBoard.value, ...updated.board }
+        currentBoard.value = { ...currentBoard.value, ...response.board }
       }
-      return updated
+      return response.board
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update board'
       throw err
@@ -108,14 +112,14 @@ export const useBoardStore = defineStore('board', () => {
 
   const addMember = async (boardId: number, data: AddBoardMemberRequest) => {
     try {
-      const member = await $fetch(`${config.public.apiBase}/boards/${boardId}/members`, {
+      const response = await $fetch<{ member: BoardMember }>(`${config.public.apiBase}/boards/${boardId}/members`, {
         method: 'POST',
         body: data
       })
       if (currentBoard.value?.id === boardId) {
         await fetchBoard(boardId)
       }
-      return member
+      return response.member
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to add member'
       throw err
@@ -138,19 +142,37 @@ export const useBoardStore = defineStore('board', () => {
 
   const updateMemberRole = async (boardId: number, userId: number, data: { role: string }) => {
     try {
-      const member = await $fetch(`${config.public.apiBase}/boards/${boardId}/members/${userId}/role`, {
+      const response = await $fetch<{ member: BoardMember }>(`${config.public.apiBase}/boards/${boardId}/members/${userId}/role`, {
         method: 'PATCH',
         body: data
       })
       if (currentBoard.value?.id === boardId) {
         await fetchBoard(boardId)
       }
-      return member
+      return response.member
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update member role'
       throw err
     }
   }
+
+  const leaveBoard = async (boardId: number) => {
+  try {
+    await $fetch(`${config.public.apiBase}/boards/${boardId}/leave`, {
+      method: 'POST'
+    })
+
+    boards.value = boards.value.filter(b => b.id !== boardId)
+
+    if (currentBoard.value?.id === boardId) {
+      currentBoard.value = null
+    }
+  } catch (err: any) {
+    error.value = err.data?.message || 'Failed to leave board'
+    throw err
+  }
+}
+
 
   const setCurrentBoard = (board: Board | null) => {
     currentBoard.value = board
@@ -184,6 +206,7 @@ export const useBoardStore = defineStore('board', () => {
     addMember,
     removeMember,
     updateMemberRole,
+    leaveBoard,
     setCurrentBoard,
     updateLocalBoard,
     clearError

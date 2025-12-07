@@ -10,7 +10,7 @@ export const useListStore = defineStore('list', () => {
     loading.value = true
     error.value = null
     try {
-      const list = await $fetch<{ list: List }>(`${config.public.apiBase}/lists`, {
+      const response = await $fetch<{ list: List }>(`${config.public.apiBase}/lists`, {
         method: 'POST',
         body: data
       })
@@ -18,11 +18,11 @@ export const useListStore = defineStore('list', () => {
       if (boardStore.currentBoard) {
         const currentLists = boardStore.currentBoard.lists || []
         boardStore.updateLocalBoard({
-          lists: [...currentLists, list.list]
+          lists: [...currentLists, response.list]
         })
       }
       
-      return list.list
+      return response.list
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create list'
       throw err
@@ -33,7 +33,7 @@ export const useListStore = defineStore('list', () => {
 
   const updateList = async (id: number, data: UpdateListRequest) => {
     try {
-      const updated = await $fetch<{ list: List }>(`${config.public.apiBase}/lists/${id}`, {
+      const response = await $fetch<{ list: List }>(`${config.public.apiBase}/lists/${id}`, {
         method: 'PUT',
         body: data
       })
@@ -42,12 +42,12 @@ export const useListStore = defineStore('list', () => {
         const index = boardStore.currentBoard.lists.findIndex(l => l.id === id)
         if (index !== -1) {
           const updatedLists = [...boardStore.currentBoard.lists]
-          updatedLists[index] = { ...updatedLists[index], ...updated.list }
+          updatedLists[index] = { ...updatedLists[index], ...response.list }
           boardStore.updateLocalBoard({ lists: updatedLists })
         }
       }
       
-      return updated.list
+      return response.list
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update list'
       throw err
@@ -92,7 +92,7 @@ export const useListStore = defineStore('list', () => {
 
   const archiveList = async (id: number) => {
     try {
-      const updated = await $fetch<{ list: List }>(`${config.public.apiBase}/lists/${id}/archive`, {
+      const response = await $fetch<{ list: List }>(`${config.public.apiBase}/lists/${id}/archive`, {
         method: 'POST'
       })
       
@@ -100,12 +100,12 @@ export const useListStore = defineStore('list', () => {
         const index = boardStore.currentBoard.lists.findIndex(l => l.id === id)
         if (index !== -1) {
           const updatedLists = [...boardStore.currentBoard.lists]
-          updatedLists[index] = updated.list
+          updatedLists[index] = response.list
           boardStore.updateLocalBoard({ lists: updatedLists })
         }
       }
       
-      return updated.list
+      return response.list
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to archive list'
       throw err
@@ -114,7 +114,7 @@ export const useListStore = defineStore('list', () => {
 
   const restoreList = async (id: number) => {
     try {
-      const updated = await $fetch<{ list: List }>(`${config.public.apiBase}/lists/${id}/restore`, {
+      const response = await $fetch<{ list: List }>(`${config.public.apiBase}/lists/${id}/restore`, {
         method: 'POST'
       })
       
@@ -122,12 +122,12 @@ export const useListStore = defineStore('list', () => {
         const index = boardStore.currentBoard.lists.findIndex(l => l.id === id)
         if (index !== -1) {
           const updatedLists = [...boardStore.currentBoard.lists]
-          updatedLists[index] = updated.list
+          updatedLists[index] = response.list
           boardStore.updateLocalBoard({ lists: updatedLists })
         }
       }
       
-      return updated.list
+      return response.list
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to restore list'
       throw err

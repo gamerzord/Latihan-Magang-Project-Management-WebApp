@@ -1,4 +1,4 @@
-import type { Workspace, CreateWorkspaceRequest, UpdateWorkspaceRequest, AddWorkspaceMemberRequest, UpdateMemberRoleRequest } from '~/types/models'
+import type { Workspace, CreateWorkspaceRequest, UpdateWorkspaceRequest, AddWorkspaceMemberRequest, UpdateMemberRoleRequest, WorkspaceMember, WorkspaceMembershipResponse } from '~/types/models'
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const workspaces = ref<Workspace[]>([])
@@ -19,7 +19,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading.value = true
     error.value = null
     try {
-      workspaces.value = (await $fetch<{ workspaces: Workspace[]}>(`${config.public.apiBase}/workspaces`)).workspaces
+      const response = await $fetch<{ workspaces: Workspace[]}>(`${config.public.apiBase}/workspaces`)
+      workspaces.value = response.workspaces
+      return response.workspaces
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch workspaces'
     } finally {
@@ -31,7 +33,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading.value = true
     error.value = null
     try {
-      currentWorkspace.value = (await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces/${id}`)).workspace
+      const response = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces/${id}`)
+      currentWorkspace.value = response.workspace
+      return response.workspace
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch workspace'
     } finally {
@@ -43,12 +47,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading.value = true
     error.value = null
     try {
-      const workspace = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces`, {
+      const response = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces`, {
         method: 'POST',
         body: data
       })
-      workspaces.value.push(workspace.workspace)
-      return workspace.workspace
+      workspaces.value.push(response.workspace)
+      return response.workspace
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to create workspace'
       throw err
@@ -59,18 +63,18 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   const updateWorkspace = async (id: number, data: UpdateWorkspaceRequest) => {
     try {
-      const updated = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces/${id}`, {
+      const response = await $fetch<{ workspace: Workspace }>(`${config.public.apiBase}/workspaces/${id}`, {
         method: 'PUT',
         body: data
       })
       const index = workspaces.value.findIndex(w => w.id === id)
       if (index !== -1) {
-        workspaces.value[index] = updated.workspace
+        workspaces.value[index] = response.workspace
       }
       if (currentWorkspace.value?.id === id) {
-        currentWorkspace.value = updated.workspace
+        currentWorkspace.value = response.workspace
       }
-      return updated
+      return response.workspace
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update workspace'
       throw err
@@ -94,14 +98,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   const addMember = async (workspaceId: number, data: AddWorkspaceMemberRequest) => {
     try {
-      const member = await $fetch(`${config.public.apiBase}/workspaces/${workspaceId}/members`, {
+      const response = await $fetch<{ member: WorkspaceMember }>(`${config.public.apiBase}/workspaces/${workspaceId}/members`, {
         method: 'POST',
         body: data
       })
       if (currentWorkspace.value?.id === workspaceId) {
         await fetchWorkspace(workspaceId)
       }
-      return member
+      return response.member
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to add member'
       throw err
@@ -124,14 +128,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   const updateMemberRole = async (workspaceId: number, userId: number, data: UpdateMemberRoleRequest) => {
     try {
-      const member = await $fetch(`${config.public.apiBase}/workspaces/${workspaceId}/members/${userId}/role`, {
+      const response = await $fetch<{ member: WorkspaceMember }>(`${config.public.apiBase}/workspaces/${workspaceId}/members/${userId}/role`, {
         method: 'PATCH',
         body: data
       })
       if (currentWorkspace.value?.id === workspaceId) {
         await fetchWorkspace(workspaceId)
       }
-      return member
+      return response.member
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update member role'
       throw err
@@ -153,14 +157,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  const getMembership = async (workspaceId: number) => {
-    try {
-      return await $fetch(`${config.public.apiBase}/workspaces/${workspaceId}/membership`)
-    } catch (err: any) {
-      error.value = err.data?.message || 'Failed to get membership'
-      throw err
+const getMembership = async (workspaceId: number) => {
+  try {
+    const response = await $fetch<WorkspaceMembershipResponse>(
+      `${config.public.apiBase}/workspaces/${workspaceId}/membership`
+    )
+
+    return {
+      workspace: response.workspace,
+      membership: response.membership
     }
+  } catch (err: any) {
+    error.value = err.data?.message || 'Failed to get membership'
+    throw err
   }
+}
 
   const setCurrentWorkspace = (workspace: Workspace | null) => {
     currentWorkspace.value = workspace

@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('boards', BoardController::class);
     Route::post('boards/{id}/members', [BoardController::class, 'addMember']);
     Route::delete('boards/{id}/members/{userId}', [BoardController::class, 'removeMember']);
+    Route::post('boards/{id}/leave', [BoardController::class, 'leave']);
     Route::patch('boards/{id}/members/{userId}/role', [BoardController::class, 'updateMemberRole']);
 
     Route::get('boards/{board}/available-members', [BoardController::class, 'availableMembers']); 

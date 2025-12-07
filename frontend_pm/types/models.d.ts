@@ -50,6 +50,7 @@ export interface Board {
   created_by: number
   workspace?: Workspace
   creator?: User
+  creator_id?: number
   members?: readonly BoardMember[]
   lists?: readonly List[]
   labels?: readonly Label[]
@@ -445,13 +446,6 @@ export interface ActivityStats {
   }>
 }
 
-export interface DragData {
-  type: 'card' | 'list'
-  id: number
-  sourceListId?: number
-  sourcePosition?: number
-}
-
 export interface CalendarEvent {
   id: number
   title: string
@@ -472,6 +466,13 @@ export interface CalendarFilter {
   startDate?: string
   endDate?: string
 }
+
+interface BulkLabelResult {
+  id: number
+  action: 'created' | 'updated' | 'deleted'
+  label?: Label
+}
+
 
 // API Response wrappers
 export interface PaginatedResponse<T> {

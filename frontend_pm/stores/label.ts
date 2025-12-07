@@ -1,4 +1,4 @@
-import type { Label, CreateLabelRequest, UpdateLabelRequest, BulkUpdateLabelsRequest } from '~/types/models'
+import type { Label, CreateLabelRequest, UpdateLabelRequest, BulkUpdateLabelsRequest, BulkLabelResult } from '~/types/models'
 
 export const useLabelStore = defineStore('label', () => {
   const labels = ref<Label[]>([])
@@ -76,44 +76,38 @@ export const useLabelStore = defineStore('label', () => {
     }
   }
 
-  const bulkUpdateLabels = async (data: BulkUpdateLabelsRequest) => {
+  const bulkUpdateLabels = async (boardId: number, data: BulkUpdateLabelsRequest) => {
     loading.value = true
     error.value = null
     try {
-      const response = await $fetch<{ labels: Label[] }>(`${config.public.apiBase}/labels/bulk-update`, {
+      const response = await $fetch<{ results: BulkLabelResult[] }>(`${config.public.apiBase}/boards/${boardId}/labels/bulk`, {
         method: 'POST',
         body: data
       })
-      labels.value = response.labels
-      return response.labels
+      
+      for (const item of response.results) {
+        if (item.action === 'deleted') {
+          labels.value = labels.value.filter(l => l.id !== item.id)
+          continue
+        }
+
+        if (item.action === 'updated') {
+          const i = labels.value.findIndex(l => l.id === item.id)
+          if (i !== -1 && item.label) labels.value[i] = item.label
+          continue
+        }
+
+        if (item.action === 'created' && item.label) {
+          labels.value.push(item.label)
+        }
+
+        return labels.value
+      }
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to update labels'
       throw err
     } finally {
       loading.value = false
-    }
-  }
-
-  const addLabelToCard = async (cardId: number, labelId: number) => {
-    try {
-      await $fetch(`${config.public.apiBase}/cards/${cardId}/labels`, {
-        method: 'POST',
-        body: { label_id: labelId }
-      })
-    } catch (err: any) {
-      error.value = err.data?.message || 'Failed to add label to card'
-      throw err
-    }
-  }
-
-  const removeLabelFromCard = async (cardId: number, labelId: number) => {
-    try {
-      await $fetch(`${config.public.apiBase}/cards/${cardId}/labels/${labelId}`, {
-        method: 'DELETE'
-      })
-    } catch (err: any) {
-      error.value = err.data?.message || 'Failed to remove label from card'
-      throw err
     }
   }
 
@@ -131,8 +125,6 @@ export const useLabelStore = defineStore('label', () => {
     deleteLabel,
     getBoardLabels,
     bulkUpdateLabels,
-    addLabelToCard,
-    removeLabelFromCard,
     clearError
   }
 })

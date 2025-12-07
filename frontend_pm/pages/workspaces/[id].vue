@@ -12,6 +12,12 @@
           <p v-if="workspace.description" class="text-body-1 text-grey">
             {{ workspace.description }}
           </p>
+          <v-chip size="small" :color="getVisibilityColor(workspace.visibility)" class="mt-1">
+            <v-icon start size="small">
+              {{  getVisibilityIcon(workspace.visibility)  }}
+            </v-icon>
+              {{ getVisibilityLabel(workspace.visibility) }}
+          </v-chip>
         </div>
 
         <div class="d-flex align-center" style="gap: 10px; height: 40px;">
@@ -24,6 +30,7 @@
           </v-btn>
 
           <v-btn
+            v-if="canManageMembers"
             color="secondary"
             prepend-icon="mdi-account-plus"
             @click="addMembersDialog = true"
@@ -31,20 +38,23 @@
             Add Members
           </v-btn>
 
-          <v-menu>
+          <v-menu v-if="canManageWorkspace">
             <template #activator="{ props }">
               <v-btn v-bind="props" icon="mdi-dots-vertical" />
             </template>
             
             <v-list>
-              <v-list-item @click="editDialog = true">
+              <v-list-item v-if="canManageWorkspace" @click="editDialog = true">
                 <v-list-item-title>Edit Workspace</v-list-item-title>
               </v-list-item>
               <v-list-item @click="membersDialog = true">
-                <v-list-item-title>Manage Members</v-list-item-title>
+                <v-list-item-title> {{ canManageMembers ? 'Manage Members' : 'View Members' }} </v-list-item-title>
               </v-list-item>
-              <v-list-item @click="handleDelete">
-                <v-list-item-title class="text-error">Delete</v-list-item-title>
+              <v-list-item  v-if="isWorkspaceOwner && canDeleteWorkspace" @click="handleDelete">
+                <v-list-item-title class="text-error">Delete Workspace</v-list-item-title>
+              </v-list-item>
+              <v-list-item v-if="!isWorkspaceOwner && userStore.isAuthenticated" @click="handleLeaveWorkspace">
+                <v-list-item-title class="text-error">Leave Workspace</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -52,9 +62,9 @@
       </div>
 
       <!-- Boards Grid -->
-      <div v-if="workspace.boards?.length" class="boards-grid">
+      <div v-if="visibleBoards.length" class="boards-grid">
         <v-card
-          v-for="board in workspace.boards"
+          v-for="board in visibleBoards"
           :key="board.id"
           class="board-card"
           hover
@@ -73,6 +83,14 @@
               <h3 class="text-h6 text-white font-weight-bold">
                 {{ board.title }}
               </h3>
+              <div class="visibility-badge">
+                <v-chip size="small" :color="getVisibilityColor(board.visibility)" class="mt-1">
+                  <v-icon start size="x-small">
+                    {{  getVisibilityIcon(board.visibility)  }}
+                  </v-icon>
+                    {{ getVisibilityLabel(board.visibility) }}
+                </v-chip>
+              </div>
             </div>
           </div>
         </v-card>
@@ -86,6 +104,27 @@
             <v-icon size="48" color="grey">mdi-plus</v-icon>
             <span class="text-body-1 text-grey mt-2">Create new board</span>
           </div>
+        </v-card>
+      </div>
+
+      <div v-else-if="workspace?.boards?.length && visibleBoards.length === 0" class="empty-state">
+        <v-card variant="outlined" class="pa-8 text-center" max-width="400">
+          <v-icon size="72" color="grey-lighten-1" class="mb-4">mdi-lock</v-icon>
+          <h3 class="text-h5 mb-2">No accessible boards</h3>
+          <p class="text-body-2 text-grey mb-6">
+            You don't have access to any boards in this workspace yet.
+            <span v-if="canManageWorkspace">Create a board or ask to be invited to existing ones.</span>
+            <span v-else>Ask a workspace admin to invite you to boards.</span>
+          </p>
+          <v-btn 
+            v-if="canManageWorkspace"
+            color="primary" 
+            size="large"
+            prepend-icon="mdi-plus"
+            @click="boardDialog = true"
+          >
+            Create First Board
+          </v-btn>
         </v-card>
       </div>
 
@@ -202,7 +241,7 @@
     <!-- Members Dialog -->
     <v-dialog v-model="membersDialog" max-width="600">
       <v-card>
-        <v-card-title>Workspace Members</v-card-title>
+        <v-card-title>{{ canManageMembers ? 'Manage Members' : 'Workspace Members' }}</v-card-title>
         
         <v-card-text>
           <v-list>
@@ -217,15 +256,20 @@
               </template>
 
               <v-list-item-title>{{ member.name }}</v-list-item-title>
-              <v-list-item-subtitle>{{ member.pivot.role }}</v-list-item-subtitle>
+              <v-list-item-subtitle>
+                <v-chip size="x-small" :color="getRoleColor(member.pivot.role)">
+                  {{ member.pivot.role }}
+                </v-chip>
+                <span v-if="member.pivot.role === 'owner'" class="ml-1">👑</span>
+              </v-list-item-subtitle>
 
               <template #append>
                 <v-btn
-                  v-if="member.pivot.role !== 'owner'"
+                  v-if="canManageMembers && member.pivot.role !== 'owner' && member.id !== userStore.user?.id"
                   icon="mdi-close"
                   size="small"
                   variant="text"
-                  @click="handleRemoveMember(member.pivot.user_id)"
+                  @click.stop="handleRemoveMember(member.pivot.user_id)"
                 />
               </template>
             </v-list-item>
@@ -246,6 +290,7 @@ const route = useRoute()
 const uiStore = useUiStore()
 const workspaceStore = useWorkspaceStore()
 const boardStore = useBoardStore()
+const userStore = useUserStore()
 
 const workspaceId = computed(() => {
   const id = route.params.id
@@ -259,6 +304,80 @@ const editDialog = ref(false)
 const membersDialog = ref(false)
 const creating = ref(false)
 const addMembersDialog = ref(false)
+
+const currentUserRole = computed(() => {
+  if (!workspace.value || !userStore.user) return null
+  const member = workspace.value.members?.find(m => m.id === userStore.user?.id)
+  return member?.pivot?.role || null
+})
+
+const isWorkspaceOwner = computed(() => {
+  return currentUserRole.value === 'owner'
+})
+
+const isWorkspaceAdmin = computed(() => {
+  return currentUserRole.value === 'admin' || isWorkspaceOwner.value
+})
+
+const canManageWorkspace = computed(() => {
+  return isWorkspaceAdmin.value
+})
+
+const canManageMembers = computed(() => {
+  return isWorkspaceAdmin.value
+})
+
+const canDeleteWorkspace = computed(() => {
+  return isWorkspaceOwner.value
+})
+
+const getVisibilityColor = (visibility: string) => {
+  switch (visibility) {
+    case 'private': return 'error'
+    case 'workspace': return 'warning'
+    case 'public': return 'success'
+    default: return 'grey'
+  }
+}
+
+const getVisibilityIcon = (visibility: string) => {
+  switch (visibility) {
+    case 'private': return 'mdi-lock'
+    case 'workspace': return 'mdi-account-group'
+    case 'public': return 'mdi-earth'
+    default: return 'mdi-eye'
+  }
+}
+
+const getVisibilityLabel = (visibility: string) => {
+  switch (visibility) {
+    case 'private': return 'Private'
+    case 'workspace': return 'Workspace'
+    case 'public': return 'Public'
+    default: return visibility
+  }
+}
+
+const getRoleColor = (role: string) => {
+  switch (role) {
+    case 'owner': return 'amber'
+    case 'admin': return 'blue'
+    case 'member': return 'grey'
+    default: return 'grey-lighten-1'
+  }
+}
+
+const handleLeaveWorkspace = async () => {
+  if (!confirm(`Are you sure you want to leave "${workspace.value?.name}"?`)) return
+  
+  try {
+    await workspaceStore.leaveWorkspace(workspaceId.value)
+    uiStore.showSnackbar(`Left ${workspace.value?.name}`, 'success')
+    navigateTo('/')
+  } catch (error) {
+    uiStore.showSnackbar('Failed to leave workspace', 'error')
+  }
+}
 
 const newBoard = reactive({
   title: '',
@@ -318,13 +437,36 @@ const handleCreateBoard = async () => {
     })
     boardDialog.value = false
     uiStore.showSnackbar('Board created!', 'success')
-    navigateTo(`/boards/${board.board.id}`)
+    navigateTo(`/boards/${board.id}`)
   } catch (error) {
     uiStore.showSnackbar('Failed to create board', 'error')
   } finally {
     creating.value = false
   }
 }
+
+const visibleBoards = computed(() => {
+  if (!workspace.value?.boards) return []
+  
+  return workspace.value.boards.filter(board => {
+    if (isWorkspaceAdmin.value) return true
+    
+    switch (board.visibility) {
+      case 'public':
+        return true
+        
+      case 'workspace':
+        return true
+        
+      case 'private':
+        const isBoardMember = board.members?.some(m => m.id === userStore.user?.id)
+        return isBoardMember || false
+        
+      default:
+        return false
+    }
+  })
+})
 
 const handleMembersAdded = (newMembers: any[]) => {
   console.log('New members added:', newMembers)
@@ -414,6 +556,24 @@ watch(boardDialog, (open) => {
 </script>
 
 <style scoped>
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.visibility-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+} 
+
+.v-chip--size-x-small {
+  height: 18px;
+  font-size: 10px;
+}
+
 .boards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

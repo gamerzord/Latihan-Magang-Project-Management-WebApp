@@ -1,4 +1,4 @@
-import type { Attachment, CreateAttachmentRequest, UpdateAttachmentRequest, BulkDestroyAttachmentsRequest } from '~/types/models'
+import type { Attachment, CreateAttachmentRequest, UpdateAttachmentRequest, BulkDestroyAttachmentsRequest, AttachmentStats } from '~/types/models'
 
 export const useAttachmentStore = defineStore('attachment', () => {
   const loading = ref(false)
@@ -100,7 +100,7 @@ export const useAttachmentStore = defineStore('attachment', () => {
 
   const getAttachmentStats = async (cardId: number) => {
     try {
-      const response = await $fetch<{ stats: any }>(`${config.public.apiBase}/cards/${cardId}/attachment-stats`)
+      const response = await $fetch<{ stats: AttachmentStats }>(`${config.public.apiBase}/cards/${cardId}/attachment/stats`)
       return response.stats
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch attachment stats'

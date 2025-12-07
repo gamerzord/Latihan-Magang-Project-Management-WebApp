@@ -192,7 +192,7 @@
             </v-card>
           </div>
           
-          <!-- Recently Visited Section (Optional) -->
+          <!-- Recently Visited Section -->
           <div v-if="recentWorkspaces.length > 0" class="mt-8">
             <h3 class="text-h6 mb-4">Recently Visited</h3>
             <div class="recent-workspaces">
@@ -266,12 +266,10 @@ const formatRelativeTime = (dateString: string): string => {
 }
 
 const editWorkspace = (workspace: any) => {
-  // Implement edit functionality
   console.log('Edit workspace:', workspace)
 }
 
 const shareWorkspace = (workspace: any) => {
-  // Implement share functionality
   console.log('Share workspace:', workspace)
 }
 

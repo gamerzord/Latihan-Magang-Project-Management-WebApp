@@ -93,8 +93,6 @@ export const useUserStore = defineStore('user', () => {
   }
 
     const searchUsers = async (query: string, excludeIds: number[] = []) => {
-    isLoading.value = true
-    error.value = null
     try {
       const response = await $fetch<{ users: User[] }>(`${config.public.apiBase}/users/search`, {
         method: 'GET',
@@ -104,14 +102,10 @@ export const useUserStore = defineStore('user', () => {
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to search users'
       throw err
-    } finally {
-      isLoading.value = false
     }
   }
 
   const getWorkspaceMembers = async (workspaceId: number, excludeIds: number[] = []) => {
-    isLoading.value = true
-    error.value = null
     try {
       const response = await $fetch<{ members: User[] }>(`${config.public.apiBase}/workspaces/${workspaceId}/available-members`, {
         method: 'GET',
@@ -121,14 +115,10 @@ export const useUserStore = defineStore('user', () => {
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch workspace members'
       throw err
-    } finally {
-      isLoading.value = false
     }
   }
 
   const getBoardMembers = async (boardId: number, excludeIds: number[] = []) => {
-    isLoading.value = true
-    error.value = null
     try {
       const response = await $fetch<{ members: User[] }>(`${config.public.apiBase}/boards/${boardId}/available-members`, {
         method: 'GET',
@@ -138,8 +128,6 @@ export const useUserStore = defineStore('user', () => {
     } catch (err: any) {
       error.value = err.data?.message || 'Failed to fetch board members'
       throw err
-    } finally {
-      isLoading.value = false
     }
   }
 

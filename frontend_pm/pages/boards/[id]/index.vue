@@ -3,13 +3,51 @@
     class="board-layout"
     :style="boardBackground"
   >
-    <BoardHeader v-if="board" :board="board" class="board-header-fixed" />
+    <BoardHeader v-if="board && canAccessBoard" :board="board" @refresh="fetchBoardData" class="board-header-fixed" />
 
     <div class="header-spacer"></div>
 
     <!-- Loading State -->
     <div v-if="boardStore.loading" class="d-flex align-center justify-center fill-height">
       <v-progress-circular indeterminate color="white" size="64" />
+    </div>
+
+    <!-- Access Denied State -->
+    <div v-else-if="board && !canAccessBoard" class="access-denied">
+      <v-card class="pa-6 text-center" max-width="500" variant="elevated">
+        <v-icon size="64" color="warning" class="mb-4">mdi-lock-alert</v-icon>
+        <h2 class="text-h5 mb-2">Access Restricted</h2>
+        <p class="text-body-1 mb-4">
+          This board is set to <strong>{{ board.visibility }}</strong> visibility.
+          You need to be invited to access it.
+        </p>
+        
+        <div v-if="board.creator" class="creator-info mb-4">
+          <p class="text-body-2">Please contact the board creator:</p>
+          <v-card variant="outlined" class="pa-3">
+            <div class="d-flex align-center">
+              <v-avatar color="primary" size="40" class="mr-3">
+                <span class="text-caption font-weight-medium">
+                  {{ getUserInitials(board.creator.name) }}
+                </span>
+              </v-avatar>
+              <div class="text-left">
+                <div class="text-body-2 font-weight-bold">{{ board.creator.name }}</div>
+                <div class="text-caption text-grey">{{ board.creator.email }}</div>
+              </div>
+            </div>
+          </v-card>
+        </div>
+
+        <div class="d-flex justify-center gap-2">
+          <v-btn
+            color="primary"
+            @click="navigateTo(`/workspaces/${board.workspace_id}`)"
+          >
+            Back to Workspace
+          </v-btn>
+        </div>
+      </v-card>
     </div>
 
     <!-- Error State -->
@@ -25,7 +63,7 @@
     </div>
 
     <!-- Board Content -->
-    <div v-else-if="board" class="board-content">
+    <div v-else-if="board && canAccessBoard" class="board-content">
       <div class="lists-container">
         <ListContainer
           v-for="list in activeLists"
@@ -52,6 +90,8 @@ import type { List } from '~/types/models'
 const route = useRoute()
 const uiStore = useUiStore()
 const boardStore = useBoardStore()
+const userStore = useUserStore()
+const workspaceStore = useWorkspaceStore()
 
 const boardId = computed(() => {
   const id = route.params.id
@@ -59,6 +99,40 @@ const boardId = computed(() => {
 })
 
 const board = computed(() => boardStore.currentBoard)
+
+const canAccessBoard = computed(() => {
+  if (!board.value || !userStore.user) return false;
+
+  const workspace = workspaceStore.currentWorkspace
+
+  const workspaceMember = workspace?.members?.find(
+    m => m.id === userStore.user?.id
+  );
+
+  if (workspaceMember?.pivot?.role === 'owner' || 
+      workspaceMember?.pivot?.role === 'admin') {
+    return true;
+  }
+
+  switch (board.value.visibility) {
+    case 'public':
+      return true;
+
+    case 'workspace':
+      const isWorkspaceMember = !!workspaceMember;
+      const isBoardMember = board.value.members?.some(
+        m => m.id === userStore.user?.id
+      );
+      return isWorkspaceMember && isBoardMember;
+
+    case 'private':
+      return board.value.members?.some(m => m.id === userStore.user?.id) || false;
+
+    default:
+      return false;
+  }
+});
+
 
 const activeLists = computed(() => {
   return boardStore.currentBoardLists.filter((list: List) => !list.archived)
@@ -86,11 +160,23 @@ const boardBackground = computed(() => {
   }
 })
 
+const getUserInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(part => part.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 2)
+}
+
 const fetchBoardData = async () => {
   if (!isNaN(boardId.value)) {
-    await boardStore.fetchBoard(boardId.value)
+    await boardStore.fetchBoard(boardId.value);
+
+    if (board.value?.workspace_id) {
+      await workspaceStore.fetchWorkspace(board.value.workspace_id);
+    }
   }
-}
+};
 
 useAutoRefresh(async () => {
   if (!isNaN(boardId.value)) {
@@ -124,6 +210,19 @@ watch(boardId, (newId) => {
 </script>
 
 <style scoped>
+.access-denied {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+}
+
+.creator-info {
+  max-width: 300px;
+  margin: 0 auto;
+}
+
 .board-header-fixed {
   position: fixed;
   top: 0;
