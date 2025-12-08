@@ -180,13 +180,13 @@
                 <v-chip size="x-small" :color="getRoleColor(member.pivot.role)">
                   {{ member.pivot.role }}
                 </v-chip>
-                <span v-if="member.id === board.creator_id" class="ml-1">👑</span>
+                <span v-if="member.id === board.creator?.id" class="ml-1">👑</span>
                 <span v-if="member.id === userStore.user?.id" class="ml-1">(You)</span>
               </v-list-item-subtitle>
 
               <template #append>
                 <v-btn
-                  v-if="canManageBoard && member.id !== board.creator_id && member.id !== userStore.user?.id"
+                  v-if="canManageBoard && member.id !== board.creator?.id && member.id !== userStore.user?.id"
                   icon="mdi-close"
                   variant="text"
                   size="small"
@@ -339,7 +339,7 @@ const currentUserRole = computed(() => {
 })
 
 const isBoardOwner = computed(() => {
-  return props.board?.creator_id === userStore.user?.id
+  return props.board?.creator?.id === userStore.user?.id
 })
 
 const isBoardAdmin = computed(() => {

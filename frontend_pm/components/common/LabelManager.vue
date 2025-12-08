@@ -228,6 +228,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const labelStore = useLabelStore()
+const cardStore = useCardStore()
 const uiStore = useUiStore()
 
 const LABEL_COLORS = [
@@ -341,11 +342,11 @@ const handleSaveLabels = async () => {
   try {
     const currentLabelIds = props.currentCardLabels?.map(l => l.id) || []
     for (const labelId of currentLabelIds) {
-      await labelStore.removeLabelFromCard(props.cardId, labelId)
+      await cardStore.removeLabel(props.cardId, labelId)
     }
 
     for (const label of selectedLabels.value) {
-      await labelStore.addLabelToCard(props.cardId, label.id)
+      await cardStore.addLabel(props.cardId, { label_id: label.id } )
     }
 
     emit('labels-updated', selectedLabels.value)

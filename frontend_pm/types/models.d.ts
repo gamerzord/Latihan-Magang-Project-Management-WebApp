@@ -50,7 +50,6 @@ export interface Board {
   created_by: number
   workspace?: Workspace
   creator?: User
-  creator_id?: number
   members?: readonly BoardMember[]
   lists?: readonly List[]
   labels?: readonly Label[]
