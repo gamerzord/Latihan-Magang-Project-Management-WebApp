@@ -2,22 +2,17 @@
   <div class="calendar-page">
     <CalendarHeader
       :current-month="currentMonth"
+      :events-count="eventsCountForMonth"
+      :is-loading="loading"
+      :board-id="boardId"
+      :board="board"
+      :filters="filters"
       @prev-month="prevMonth"
       @next-month="nextMonth"
       @today="goToToday"
+      @refresh="fetchCalendarEvents(boardId)"
+      @update:filters="updateFilters"
     />
-
-    <div class="calendar-toolbar">
-      <CalendarMenu
-        :filters="{
-          ...filters,
-          labelIds: filters.labelIds ? [...filters.labelIds] : filters.labelIds,
-          memberIds: filters.memberIds ? [...filters.memberIds] : filters.memberIds
-        }"
-        :board="board"
-        @update:filters="updateFilters"
-      />
-    </div>
 
     <CalendarGrid
       v-if="!loading"
@@ -39,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CalendarEvent, CalendarFilter } from '~/types/models'
+import type { CalendarEvent } from '~/types/models'
 
 const route = useRoute()
 const uiStore = useUiStore()
@@ -47,13 +42,7 @@ const boardStore = useBoardStore()
 
 const boardId = computed(() => {
   const id = route.params.id
-  const parsedId = typeof id === 'string' ? parseInt(id, 10) : NaN
-
-  if (isNaN(parsedId) || parsedId <= 0) {
-    return null
-  }
-  
-  return parsedId
+  return typeof id === 'string' ? parseInt(id, 10) : NaN
 })
 
 const board = computed(() => boardStore.currentBoard)
@@ -70,8 +59,12 @@ const {
   updateFilters
 } = useCalendar()
 
+const eventsCountForMonth = computed(() => {
+  return getEventsForMonth.value.length
+})
+
 const fetchData = async () => {
-  if (boardId.value !== null) {
+  if (!isNaN(boardId.value)) {
     await boardStore.fetchBoard(boardId.value)
     await fetchCalendarEvents(boardId.value)
   }
@@ -81,20 +74,21 @@ useAutoRefresh(async () => {
   await fetchData()
 })
 
-watch(filters, async () => {
-  if (boardId.value !== null) {
+watch(filters, async (newFilters) => {
+  console.log('Filters changed:', newFilters)
+  if (!isNaN(boardId.value)) {
     await fetchCalendarEvents(boardId.value)
   }
 }, { deep: true })
 
 watch(boardId, (newId) => {
-  if (newId !== null) {
+  if (!isNaN(newId)) {
     fetchData()
   }
 })
 
 watch(boardId, (newId) => {
-  if (newId === null) {
+  if (isNaN(newId)) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Board not found'

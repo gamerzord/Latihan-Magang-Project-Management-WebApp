@@ -52,12 +52,6 @@
 
     <!-- Board Actions -->
     <v-btn
-      icon="mdi-star-outline"
-      variant="text"
-      color="white"
-    />
-
-    <v-btn
       v-if="canManageBoard"
       prepend-icon="mdi-account-plus"
       variant="text"
@@ -80,7 +74,7 @@
       <span class="ml-1">({{ board.members?.length || 0 }})</span>
     </v-btn>
 
-    <v-menu v-if="canManageBoard">
+    <v-menu>
       <template #activator="{ props }">
         <v-btn
           v-bind="props"
@@ -91,7 +85,7 @@
       </template>
       
       <v-list density="compact">
-        <v-list-item @click="settingsDialog = true">
+        <v-list-item v-if="canManageBoard"  @click="settingsDialog = true">
           <template #prepend>
             <v-icon>mdi-cog</v-icon>
           </template>
@@ -153,10 +147,10 @@
     <v-dialog v-model="addMembersDialog" max-width="600">
       <CommonMemberSelector
         v-if="board"
-        :board-id="board.workspace_id"
+        context="board"
+        :board-id="board.id"
         :current-members="[...(board.members || [])]"
         :visibility="board.visibility"
-        context="board"
         @close="addMembersDialog = false"
         @members-added="handleMembersAdded"
         @refresh="$emit('refresh')"

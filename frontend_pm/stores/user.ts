@@ -131,6 +131,19 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  const getCardMembers = async (cardId: number, excludeIds: number[] = []) => {
+    try {
+      const response = await $fetch<{ members: User[] }>(`${config.public.apiBase}/cards/${cardId}/available-members`, {
+        method: 'GET',
+        params: { exclude: excludeIds.join(',') }
+      })
+      return response.members
+    } catch (err: any) {
+      error.value = err.data?.message || 'Failed to fetch card members'
+      throw err
+    }
+  }
+
   const logout = async (): Promise<void> => {
     try {
       await $fetch(`${config.public.apiBase}/logout`, { method: 'POST' })
@@ -159,6 +172,7 @@ export const useUserStore = defineStore('user', () => {
     searchUsers,
     getWorkspaceMembers,
     getBoardMembers,
+    getCardMembers,
     logout
   }
 }, {

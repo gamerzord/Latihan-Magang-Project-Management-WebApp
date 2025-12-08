@@ -32,7 +32,7 @@ export const useBoardStore = defineStore('board', () => {
         ? `${config.public.apiBase}/boards?workspace_id=${workspaceId}`
         : `${config.public.apiBase}/boards`
       
-      const response = await $fetch<{ boards: Board[]} >(url)
+      const response = await $fetch<{ boards: Board[] } >(url)
       boards.value = response.boards
       return response.boards
     } catch (err: any) {

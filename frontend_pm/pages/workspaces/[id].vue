@@ -230,7 +230,9 @@
     <v-dialog v-model="addMembersDialog" max-width="600">
       <CommonMemberSelector
         v-if="workspace"
+        context="workspace"
         :workspace-id="workspaceId"
+        :visibility="workspace.visibility"
         :current-members="[...(workspace.members || [])]"
         @close="addMembersDialog = false"
         @members-added="handleMembersAdded"

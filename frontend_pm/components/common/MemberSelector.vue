@@ -64,28 +64,17 @@
 
           <template #append>
             <v-select 
-              v-if="shouldShowRoleSelector && canAssignRoles"
+              v-if="showRoleSelector"
               v-model="selectedRoles[user.id]"
-              :items="ROLE_OPTIONS"
+              :items="roleOptions"
               item-title="label"
               item-value="value"
               density="compact"
               variant="outlined"
               hide-details
               style="width: 100px;"
-              class="mr-2" />
-
-              <v-select 
-              v-if="shouldShowBoardRoleSelector && canAssignRoles"
-              v-model="selectedRoles[user.id]"
-              :items="BOARD_ROLE_OPTIONS"
-              item-title="label"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              hide-details
-              style="width: 100px;"
-              class="mr-2" />
+              class="mr-2"
+            />
 
             <v-icon 
               v-if="isMember(user.id)" 
@@ -211,32 +200,25 @@ const addingMembers = ref(false)
 const selectedRoles = ref<Record<number, string>>({})
 const searchTimeout = ref<ReturnType<typeof setTimeout>>()
 
-const ROLE_OPTIONS = computed(() => {
-  if (props.context === 'workspace' && props.visibility === 'private') {
-    return [
-      { label: 'Member', value: 'member' },
-      { label: 'Admin', value: 'admin' },
-    ]
+const roleOptions = computed(() => {
+  if (props.context === 'card') return []
+  
+  if (props.context === 'workspace' || props.context === 'board') {
+    return props.visibility === 'private'
+      ? [
+          { label: 'Member', value: 'member' },
+          { label: 'Admin', value: 'admin' },
+        ]
+      : [{ label: 'Member', value: 'member' }]
   }
-  return [{ label: 'Member', value: 'member' }]
+  return []
 })
 
-const BOARD_ROLE_OPTIONS = computed(() => {
-  if (props.context === 'board' && props.visibility === 'private') {
-    return [
-      { label: 'Member', value: 'member' },
-      { label: 'Admin', value: 'admin' },
-    ]
-  }
-  return [{ label: 'Member', value: 'member' }]
-})
-
-const shouldShowRoleSelector = computed(() => {
-  return props.context === 'workspace' && props.visibility === 'private'
-})
-
-const shouldShowBoardRoleSelector = computed(() => {
-  return props.context === 'board' && props.visibility === 'private'
+const showRoleSelector = computed(() => {
+  if (props.context === 'card') return false
+  
+  return (props.context === 'workspace' || props.context === 'board') 
+    && props.visibility === 'private'
 })
 
 const defaultRole = computed(() => {
@@ -246,10 +228,6 @@ const defaultRole = computed(() => {
     return props.visibility === 'private' ? 'member' : 'member'
   }
   return 'member'
-})
-
-const canAssignRoles = computed(() => {
-  return props.context === 'workspace' || props.context === 'board'
 })
 
 const filteredUsers = computed(() => {
@@ -286,17 +264,22 @@ const loadAvailableMembers = async () => {
       excludeIds.push(currentUserId)
     }
 
-    if (props.context === 'workspace' && props.workspaceId) {
+    if (props.context === 'card' && props.cardId) {
+      if (props.boardId) {
+        availableUsers.value = await userStore.getCardMembers(props.cardId, excludeIds)
+      } else {
+        availableUsers.value = await userStore.searchUsers('', excludeIds)
+      }
+    } else if (props.context === 'workspace' && props.workspaceId) {
       availableUsers.value = await userStore.getWorkspaceMembers(props.workspaceId, excludeIds)
-    } else if (props.context === 'board' && props.workspaceId) {
-      availableUsers.value = await userStore.getWorkspaceMembers(props.workspaceId, excludeIds)
-    } else if (props.context === 'card') {
-      availableUsers.value = await userStore.getBoardMembers(props.boardId!, excludeIds)
-    } else {
+    } else if (props.context === 'board' && props.boardId) {
+        availableUsers.value = await userStore.getBoardMembers(props.boardId, excludeIds)
+      } else {
       availableUsers.value = await userStore.searchUsers('', excludeIds)
     }
   } catch (err: any) {
     error.value = err.data?.message || 'Failed to load available members'
+    console.error('Error loading members:', err)
   } finally {
     loading.value = false
   }

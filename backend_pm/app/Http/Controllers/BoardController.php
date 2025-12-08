@@ -312,8 +312,8 @@ class BoardController extends Controller
         
         $workspaceMembers = $board->workspace->members()
             ->whereNotIn('users.id', $allexcludeIds)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'avatar_url']);
+            ->orderBy('users.name')
+            ->get(['users.id', 'users.name', 'users.email', 'users.avatar_url']);
         
         return response()->json(['members' => $workspaceMembers]);
     }

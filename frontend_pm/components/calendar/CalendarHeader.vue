@@ -42,23 +42,6 @@
         >
           Today
         </v-btn>
-
-        <!-- View Toggle -->
-        <v-btn-toggle
-          v-model="viewMode"
-          divided
-          variant="outlined"
-          density="compact"
-        >
-          <v-btn value="month" size="small">
-            <v-icon size="small" class="mr-1">mdi-view-module</v-icon>
-            Month
-          </v-btn>
-          <v-btn value="week" size="small">
-            <v-icon size="small" class="mr-1">mdi-view-week</v-icon>
-            Week
-          </v-btn>
-        </v-btn-toggle>
       </div>
 
       <!-- Right Section: Actions -->
@@ -116,19 +99,86 @@
         <v-card-title>Calendar Filters</v-card-title>
         <v-card-text>
           <v-checkbox
-            v-model="filters.showCompleted"
-            label="Show completed cards"
+            v-model="localFilters.showCompleted"
+            label="Show only completed cards"
             density="compact"
+            hide-details
+            class="mb-2"
           />
           <v-checkbox
-            v-model="filters.showOverdue"
-            label="Show overdue cards"
+            v-model="localFilters.showOverdue"
+            label="Show only overdue cards"
             density="compact"
+            hide-details
+            class="mb-2"
           />
+          <!-- Show Only My Cards -->
+          <v-checkbox
+            v-model="localFilters.showOnlyMyCards"
+            label="Show only my cards"
+            density="compact"
+            hide-details
+            class="mb-2"
+          />
+
+          <!-- Labels Filter (if you have labels) -->
+          <div v-if="availableLabels.length > 0" class="mb-3">
+            <label class="text-caption text-grey d-block mb-2">Labels</label>
+            <div class="d-flex flex-wrap gap-1">
+              <v-chip
+                v-for="label in availableLabels"
+                :key="label.id"
+                size="small"
+                :color="label.color || 'primary'"
+                :variant="isLabelSelected(label.id) ? 'flat' : 'outlined'"
+                @click="toggleLabel(label.id)"
+                class="cursor-pointer"
+              >
+                {{ label.name }}
+              </v-chip>
+            </div>
+          </div>
+
+          <!-- Members Filter (if you have members) -->
+          <div v-if="availableMembers.length > 0" class="mb-3">
+            <label class="text-caption text-grey d-block mb-2">Members</label>
+            <div class="d-flex flex-wrap gap-1">
+              <v-chip
+                v-for="member in availableMembers"
+                :key="member.id"
+                size="small"
+                variant="outlined"
+                :class="{ 'selected-member': isMemberSelected(member.id) }"
+                @click="toggleMember(member.id)"
+                class="cursor-pointer"
+              >
+                <v-avatar size="20" class="mr-1">
+                  <span class="text-caption">
+                    {{ getUserInitials(member.name) }}
+                  </span>
+                </v-avatar>
+                {{ member.name }}
+              </v-chip>
+            </div>
+          </div>
+
+          <!-- Clear Filters Button -->
+          <div v-if="activeFilterCount > 0" class="mt-3">
+            <v-btn
+              variant="text"
+              size="small"
+              prepend-icon="mdi-filter-remove"
+              @click="clearFilters"
+              color="grey"
+              block
+            >
+              Clear All Filters
+            </v-btn>
+          </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="showFilters = false">Close</v-btn>
+          <v-btn variant="text" @click="closeFilters">Close</v-btn>
           <v-btn color="primary" @click="applyFilters">Apply</v-btn>
         </v-card-actions>
       </v-card>
@@ -137,11 +187,15 @@
 </template>
 
 <script setup lang="ts">
+import type { CalendarFilter } from '~/types/models'
+
 interface Props {
   currentMonth: Date
   eventsCount?: number
   isLoading?: boolean
   boardId?: number
+  board?: any
+  filters?: CalendarFilter
 }
 
 interface Emits {
@@ -149,25 +203,43 @@ interface Emits {
   (event: 'next-month'): void
   (event: 'today'): void
   (event: 'refresh'): void
-  (event: 'view-change', view: string): void
-  (event: 'filter-change', filters: any): void
+  (event: 'update:filters', filters: CalendarFilter): void
+  (event: 'filter-change', filters: CalendarFilter): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   eventsCount: 0,
-  isLoading: false
+  isLoading: false,
+  filters: () => ({
+    showCompleted: false,
+    showOverdue: false,
+    showOnlyMyCards: false,
+    labelIds: [],
+    memberIds: []
+  })
 })
 
 const emit = defineEmits<Emits>()
 
 const route = useRoute()
-const uiStore = useUiStore()
+const userStore = useUserStore()
 
-const viewMode = ref<'month' | 'week'>('month')
 const showFilters = ref(false)
-const filters = reactive({
-  showCompleted: false,
-  showOverdue: true
+
+const localFilters = reactive<CalendarFilter>({
+  showCompleted: props.filters.showCompleted,
+  showOverdue: props.filters.showOverdue,
+  showOnlyMyCards: props.filters.showOnlyMyCards,
+  labelIds: [...(props.filters.labelIds || [])],
+  memberIds: [...(props.filters.memberIds || [])]
+})
+
+const availableLabels = computed(() => {
+  return props.board?.labels || []
+})
+
+const availableMembers = computed(() => {
+  return props.board?.members || []
 })
 
 const monthName = computed(() => {
@@ -182,16 +254,74 @@ const year = computed(() => props.currentMonth.getFullYear())
 
 const activeFilterCount = computed(() => {
   let count = 0
-  if (filters.showCompleted) count++
-  if (filters.showOverdue) count++
+  if (localFilters.showCompleted) count++
+  if (localFilters.showOverdue) count++
+  if (localFilters.showOnlyMyCards) count++
+  if (localFilters.labelIds?.length) count++
+  if (localFilters.memberIds?.length) count++
   return count
 })
 
-const isCurrentMonth = computed(() => {
-  const now = new Date()
-  return props.currentMonth.getMonth() === now.getMonth() && 
-         props.currentMonth.getFullYear() === now.getFullYear()
-})
+const getUserInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(part => part.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 2)
+}
+
+const isLabelSelected = (labelId: number) => {
+  return localFilters.labelIds?.includes(labelId) || false
+}
+
+const isMemberSelected = (memberId: number) => {
+  return localFilters.memberIds?.includes(memberId) || false
+}
+
+const toggleLabel = (labelId: number) => {
+  if (!localFilters.labelIds) {
+    localFilters.labelIds = []
+  }
+  
+  const index = localFilters.labelIds.indexOf(labelId)
+  if (index > -1) {
+    localFilters.labelIds.splice(index, 1)
+  } else {
+    localFilters.labelIds.push(labelId)
+  }
+}
+
+const toggleMember = (memberId: number) => {
+  if (!localFilters.memberIds) {
+    localFilters.memberIds = []
+  }
+  
+  const index = localFilters.memberIds.indexOf(memberId)
+  if (index > -1) {
+    localFilters.memberIds.splice(index, 1)
+  } else {
+    localFilters.memberIds.push(memberId)
+  }
+}
+
+const clearFilters = () => {
+  localFilters.showCompleted = false
+  localFilters.showOverdue = false
+  localFilters.showOnlyMyCards = false
+  localFilters.labelIds = []
+  localFilters.memberIds = []
+}
+
+const closeFilters = () => {
+  showFilters.value = false
+  Object.assign(localFilters, props.filters)
+}
+
+const applyFilters = () => {
+  emit('update:filters', { ...localFilters })
+  emit('filter-change', { ...localFilters })
+  showFilters.value = false
+}
 
 const navigateToBoard = () => {
   if (props.boardId) {
@@ -206,16 +336,8 @@ const navigateToBoard = () => {
   }
 }
 
-const applyFilters = () => {
-  emit('filter-change', { ...filters })
-  showFilters.value = false
-}
-
-watch(viewMode, (newView) => {
-  emit('view-change', newView)
-})
-
-watch(filters, (newFilters) => {
+watch(() => props.filters, (newFilters) => {
+  Object.assign(localFilters, newFilters)
 }, { deep: true })
 
 const handleKeydown = (event: KeyboardEvent) => {

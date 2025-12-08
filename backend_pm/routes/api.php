@@ -37,7 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('workspaces/{id}/leave', [WorkspaceController::class, 'leave']);
     Route::get('workspaces/{id}/membership', [WorkspaceController::class, 'myMembership']);
 
-    Route::get('workspaces/{workspace}/available-members', [WorkspaceController::class, 'availableMembers']); 
+    Route::get('workspaces/{workspaceId}/available-members', [WorkspaceController::class, 'availableMembers']); 
 
     Route::apiResource('boards', BoardController::class);
     Route::post('boards/{id}/members', [BoardController::class, 'addMember']);
@@ -45,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('boards/{id}/leave', [BoardController::class, 'leave']);
     Route::patch('boards/{id}/members/{userId}/role', [BoardController::class, 'updateMemberRole']);
 
-    Route::get('boards/{board}/available-members', [BoardController::class, 'availableMembers']); 
+    Route::get('boards/{boardId}/available-members', [BoardController::class, 'availableMembers']); 
 
     Route::apiResource('lists', ListController::class)->except(['index', 'show']);
     Route::post('lists/reorder', [ListController::class, 'reorder']);
@@ -62,6 +62,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('cards/{id}/archive', [CardController::class, 'archive']);
     Route::post('cards/{id}/restore', [CardController::class, 'restore']);
     Route::post('cards/{id}/toggle-due', [CardController::class, 'toggleDueDateCompletion']);
+
+    Route::get('cards/{cardId}/available-members', [CardController::class, 'availableMembers']);
 
     Route::get('boards/{boardId}/labels', [LabelController::class, 'index']);
     Route::apiResource('labels', LabelController::class)->except(['index', 'show']);

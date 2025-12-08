@@ -184,6 +184,7 @@
     <!-- Add Member Dialog -->
     <v-dialog v-model="addMemberDialog" max-width="400">
       <CommonMemberSelector
+        context="card"
         :card-id="cardId"
         :current-members="card?.members ? Array.from(card.members) : []"
         @close="addMemberDialog = false"

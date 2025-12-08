@@ -77,6 +77,20 @@ export interface BoardMember {
   }
 }
 
+export interface CardMember {
+  id: number
+  name: string
+  email: string
+  avatar_url?: string
+  created_at: string
+  updated_at: string
+  pivot: {
+    card_id: number
+    user_id: number
+    assigned_by?: number
+  }
+}
+
 export interface List {
   id: number
   board_id: number
@@ -453,6 +467,8 @@ export interface CalendarEvent {
   end?: string
   card: Card
   color?: string
+  isOverdue: boolean
+  isCompleted: boolean
 }
 
 export interface CalendarFilter {
@@ -463,6 +479,7 @@ export interface CalendarFilter {
   showCompleted?: boolean
   showOverdue?: boolean
   showDueToday?: boolean
+  showOnlyMyCards?: boolean
   startDate?: string
   endDate?: string
 }

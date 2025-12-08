@@ -58,7 +58,25 @@ class Board extends Model
 
     public function isMember($userId)
     {
-        return $this->members()->where('user_id', $userId)->exists() || $this->workspace->isMember($userId);
+        return $this->members()->where('user_id', $userId)->exists();
+    }
+
+    public function canUserAccess($userId)
+    {
+        switch ($this->visibility) {
+            case 'public':
+                return true;
+                
+            case 'workspace':
+                return $this->workspace->isMember($userId) 
+                    || $this->members()->where('user_id', $userId)->exists();
+                
+            case 'private':
+                return $this->members()->where('user_id', $userId)->exists();
+                
+            default:
+                return false;
+        }
     }
 
     public function hasRole($userId, $role)

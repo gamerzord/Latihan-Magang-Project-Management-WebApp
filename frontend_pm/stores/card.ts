@@ -14,7 +14,7 @@ import type {
   ReorderChecklistsRequest,
   ReorderChecklistItemsRequest,
   Label,
-  BoardMember,
+  CardMember
 } from '~/types/models'
 
 export const useCardStore = defineStore('card', () => {
@@ -212,7 +212,7 @@ export const useCardStore = defineStore('card', () => {
 
   const addMember = async (cardId: number, data: AddCardMemberRequest) => {
     try {
-      const response = await $fetch<{ member: BoardMember }>(`${config.public.apiBase}/cards/${cardId}/members`, {
+      const response = await $fetch<{ member: CardMember }>(`${config.public.apiBase}/cards/${cardId}/members`, {
         method: 'POST',
         body: data
       })

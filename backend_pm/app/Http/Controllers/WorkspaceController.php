@@ -12,7 +12,7 @@ class WorkspaceController extends Controller
     {
         $workspaces = $request->user()
             ->workspaces()
-            ->with(['creator'])
+            ->with(['creator', 'boards'])
             ->withCount('boards')
             ->get();
 
@@ -47,7 +47,7 @@ class WorkspaceController extends Controller
     {
         $workspace = Workspace::with(['creator', 'members' => function ($query) {
             $query->withPivot('role', 'invited_by', 'joined_at');
-        }, 'boards'])
+        }, 'boards', 'boards.members', 'boards.creator', 'boards.labels'])
             ->withCount('boards')
             ->find($id);
 

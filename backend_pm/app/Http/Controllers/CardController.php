@@ -189,42 +189,43 @@ class CardController extends Controller
         ]);
     }
 
-    public function addMember(Request $request, $id)
-    {
-        $card = Card::find($id);
-        $board = $card->board;
-        
-        if (!$board->isMember(auth()->id())) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if (!$card) {
-            return response()->json([
-                'message' => 'Card not found'
-            ], 404);
-        }
-
-        $data = $request->validate([
-            'user_id' => 'required|exists:users,id',
-        ]);
-
-        if ($card->members()->where('user_id', $data['user_id'])->exists()) {
-            return response()->json([
-                'message' => 'User is already a member of this card'
-            ], 422);
-        }
-
-        $card->members()->attach($data['user_id'], [
-            'assigned_by' => auth()->id(),
-        ]);
-
-        $member = $card->members()->where('user_id', $data['user_id'])->first();
-
+public function addMember(Request $request, $id)
+{
+    $card = Card::find($id);
+    
+    if (!$card) {
         return response()->json([
-            'message' => 'Member added successfully',
-            'member' => $member
-        ], 200);
+            'message' => 'Card not found'
+        ], 404);
     }
+    
+    $board = $card->list->board;
+    
+    if (!$board->isMember(auth()->id())) {
+        return response()->json(['message' => 'Unauthorized'], 403);
+    }
+    
+    $data = $request->validate([
+        'user_id' => 'required|exists:users,id',
+    ]);
+    
+    if ($card->members()->where('user_id', $data['user_id'])->exists()) {
+        return response()->json([
+            'message' => 'User is already a member of this card'
+        ], 422);
+    }
+    
+    $card->members()->attach($data['user_id'], [
+        'assigned_by' => auth()->id(),
+    ]);
+    
+    $member = $card->members()->where('user_id', $data['user_id'])->first();
+    
+    return response()->json([
+        'message' => 'Member added successfully',
+        'member' => $member
+    ], 200);
+}
 
     public function removeMember($id, $userId)
     {
@@ -323,5 +324,23 @@ class CardController extends Controller
             'message' => 'Due date completion updated',
             'card' => $card->fresh()
         ]);
+    }
+
+        public function availableMembers($cardId)
+    {
+        $card = Card::findOrFail($cardId);
+        $board = $card->list->board;
+        
+        $currentUserId = auth()->id();
+        
+        $existingCardMemberIds = $card->members()->pluck('users.id')->toArray();
+        
+        $boardMembers = $board->members()
+            ->whereNotIn('users.id', $existingCardMemberIds)
+            ->where('users.id', '!=', $currentUserId)
+            ->orderBy('name')
+            ->get(['users.id', 'name', 'email', 'avatar_url']);
+        
+        return response()->json(['members' => $boardMembers]);
     }
 }
