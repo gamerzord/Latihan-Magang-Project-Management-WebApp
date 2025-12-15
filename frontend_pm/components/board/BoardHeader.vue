@@ -25,7 +25,7 @@
       v-else-if="canEditBoard"
       variant="text"
       color="white"
-      class="text-h6 font-weight-bold"
+      class="text-h6 font-weight-bold text-white"
       @click="editing = true"
     >
       {{ board.title }}
@@ -33,7 +33,7 @@
 
     <div
       v-else
-      class="text-h6 font-weight-bold white--text"
+      class="text-h6 font-weight-bold text-white"
     >
       {{ board.title }}
     </div>
@@ -538,6 +538,12 @@ watch(settingsDialog, (open) => {
 
 .board-title-input :deep(.v-field__field) {
   padding: 0 8px;
+}
+
+/* Force white text for title button and div */
+.v-btn.text-white,
+.text-white {
+  color: white !important;
 }
 
 .background-colors {

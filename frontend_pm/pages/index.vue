@@ -35,18 +35,14 @@
 
     <!-- Authenticated state -->
     <template v-else>
-      <v-row class="fill-height">
-        <v-col class="sidebar-col" cols="12" md="3" lg="2" v-if="uiStore.sidebarOpen">
-          <LayoutWorkspaceSelector />
-        </v-col>
-        <v-col class="main-content" :class="{ 'full-width': !uiStore.sidebarOpen }">
+      <!-- Main Content Area -->
+      <v-main>
+        <v-container fluid class="main-content">
           <!-- Header with Create Workspace button -->
-          <div class="d-flex align-center justify-space-between mb-6">
-            <div class="d-flex align-center">
-              <div>
-                <h1 class="text-h4">My Workspaces</h1>
-                <p class="text-body-1 text-grey">Manage all your projects and teams</p>
-              </div>
+          <div class="d-flex align-center justify-space-between mb-6 flex-wrap">
+            <div>
+              <h1 class="text-h4">My Workspaces</h1>
+              <p class="text-body-1 text-grey">Manage all your projects and teams</p>
             </div>
             <v-btn
               color="primary"
@@ -116,7 +112,7 @@
                     </p>
                     
                     <!-- Stats -->
-                    <div class="d-flex align-center text-caption text-grey mt-3">
+                    <div class="d-flex align-center text-caption text-grey mt-3 flex-wrap">
                       <div class="d-flex align-center mr-4">
                         <v-icon size="16" class="mr-1">mdi-account-group</v-icon>
                         <span>{{ workspace.members?.length || 0 }} members</span>
@@ -212,8 +208,8 @@
               </v-chip>
             </div>
           </div>
-        </v-col>
-      </v-row>
+        </v-container>
+      </v-main>
     </template>
 
     <!-- Create Workspace Dialog -->
@@ -302,29 +298,20 @@ const handleWorkspaceCreated = (workspace: any) => {
 </script>
 
 <style scoped>
-  .unauthenticated {
-    position: fixed;
-    inset: 0;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.unauthenticated {
+  position: fixed;
+  inset: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .fill-height {
-  min-height: calc(100vh - 64px);
-}
-
-.sidebar-col {
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
-  background-color: #f8f9fa;
+  min-height: 100vh;
 }
 
 .main-content {
-  transition: all 0.3s ease;
   padding: 24px;
-}
-
-.full-width {
-  max-width: 100%;
+  margin: 0 auto;
 }
 
 /* Workspaces Grid */
@@ -372,20 +359,6 @@ const handleWorkspaceCreated = (workspace: any) => {
 
 /* Responsive */
 @media (max-width: 960px) {
-  .sidebar-col {
-    position: fixed;
-    top: 64px;
-    left: 0;
-    height: calc(100vh - 64px);
-    z-index: 100;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  
-  .sidebar-col:has(.v-navigation-drawer--active) {
-    transform: translateX(0);
-  }
-  
   .main-content {
     padding: 16px;
   }
@@ -403,7 +376,12 @@ const handleWorkspaceCreated = (workspace: any) => {
   
   .d-flex.justify-space-between {
     flex-direction: column;
+    align-items: flex-start !important;
     gap: 16px;
+  }
+  
+  .d-flex.justify-space-between .v-btn {
+    width: 100%;
   }
 }
 </style>
