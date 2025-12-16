@@ -3,7 +3,13 @@
     class="board-layout"
     :style="boardBackground"
   >
-    <BoardHeader v-if="board && canAccessBoard" :board="board" @refresh="fetchBoardData" class="board-header-fixed" />
+    <BoardHeader 
+      v-if="board && canAccessBoard" 
+      :board="board" 
+      @refresh="fetchBoardData" 
+      @scroll-to-card="scrollToCard"
+      class="board-header-fixed" 
+    />
 
     <div class="header-spacer"></div>
 
@@ -63,7 +69,7 @@
     </div>
 
     <!-- Board Content -->
-    <div v-else-if="board && canAccessBoard" class="board-content">
+    <div v-else-if="board && canAccessBoard" ref="boardContent" class="board-content">
       <div class="lists-container">
         <ListContainer
           v-for="list in activeLists"
@@ -92,6 +98,7 @@ const uiStore = useUiStore()
 const boardStore = useBoardStore()
 const userStore = useUserStore()
 const workspaceStore = useWorkspaceStore()
+const boardContent = ref<HTMLElement | null>(null)
 
 const boardId = computed(() => {
   const id = route.params.id
@@ -168,6 +175,28 @@ const getUserInitials = (name: string): string => {
     .slice(0, 2)
 }
 
+const scrollToCard = (cardId: number) => {
+  // Find the card element
+  const cardElement = document.querySelector(`[data-card-id="${cardId}"]`)
+  
+  if (cardElement) {
+    // Scroll the card into view
+    cardElement.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center',
+      inline: 'center'
+    })
+    
+    // Add highlight animation
+    cardElement.classList.add('card-highlight')
+    
+    // Remove highlight after animation
+    setTimeout(() => {
+      cardElement.classList.remove('card-highlight')
+    }, 2500)
+  }
+}
+
 const fetchBoardData = async () => {
   if (!isNaN(boardId.value)) {
     await boardStore.fetchBoard(boardId.value);
@@ -234,7 +263,7 @@ watch(boardId, (newId) => {
 }
 
 .header-spacer {
-  height: 64px; /* Same as header height */
+  height: 64px;
 }
 
 .board-layout {
@@ -293,6 +322,32 @@ watch(boardId, (newId) => {
 
 .lists-container::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* Card highlight animation */
+:deep(.card-highlight) {
+  animation: cardPulse 2.5s ease-in-out;
+  position: relative;
+  z-index: 10;
+}
+
+@keyframes cardPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+    transform: scale(1);
+  }
+  25% {
+    box-shadow: 0 0 0 8px rgba(33, 150, 243, 0.4);
+    transform: scale(1.02);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
+    transform: scale(1);
+  }
+  75% {
+    box-shadow: 0 0 0 8px rgba(33, 150, 243, 0.4);
+    transform: scale(1.02);
+  }
 }
 
 /* Mobile responsiveness */

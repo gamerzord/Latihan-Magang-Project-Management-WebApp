@@ -50,6 +50,97 @@
 
     <v-spacer />
 
+    <!-- Search Button -->
+    <v-menu
+      v-model="searchOpen"
+      :close-on-content-click="false"
+      location="bottom"
+      max-width="400"
+    >
+      <template #activator="{ props }">
+        <v-btn
+          v-bind="props"
+          icon="mdi-magnify"
+          variant="text"
+          color="white"
+          class="mr-1"
+        />
+      </template>
+      
+      <v-card class="search-card">
+        <v-card-text class="pa-3">
+          <v-text-field
+            v-model="searchQuery"
+            placeholder="Search cards..."
+            prepend-inner-icon="mdi-magnify"
+            variant="outlined"
+            density="compact"
+            hide-details
+            autofocus
+            clearable
+            @keyup.esc="searchOpen = false"
+          />
+          
+          <!-- Search Results -->
+          <div v-if="searchQuery.trim()" class="search-results mt-3">
+            <div v-if="searchResults.length === 0" class="text-center py-4 text-grey">
+              <v-icon size="48" class="mb-2">mdi-card-search-outline</v-icon>
+              <div class="text-body-2">No cards found</div>
+            </div>
+            
+            <v-list v-else density="compact" class="pa-0">
+              <v-list-item
+                v-for="result in searchResults"
+                :key="result.card.id"
+                class="search-result-item"
+                @click="handleCardClick(result)"
+              >
+                <template #prepend>
+                  <v-icon size="20" color="grey-darken-1">mdi-card-text-outline</v-icon>
+                </template>
+                
+                <v-list-item-title class="text-body-2 font-weight-medium">
+                  {{ result.card.title }}
+                </v-list-item-title>
+                
+                <v-list-item-subtitle class="text-caption">
+                  in {{ result.listName }}
+                </v-list-item-subtitle>
+                
+                <!-- Labels if any -->
+                <template #append>
+                  <div v-if="result.card.labels && result.card.labels.length > 0" class="d-flex gap-1">
+                    <v-chip
+                      v-for="label in result.card.labels.slice(0, 2)"
+                      :key="label.id"
+                      :color="label.color"
+                      size="x-small"
+                      class="label-chip"
+                    >
+                      {{ label.name }}
+                    </v-chip>
+                    <v-chip
+                      v-if="result.card.labels.length > 2"
+                      size="x-small"
+                      variant="text"
+                    >
+                      +{{ result.card.labels.length - 2 }}
+                    </v-chip>
+                  </div>
+                </template>
+              </v-list-item>
+            </v-list>
+          </div>
+          
+          <div v-else class="text-center py-6 text-grey-lighten-1">
+            <v-icon size="40" class="mb-2">mdi-magnify</v-icon>
+            <div class="text-body-2">Type to search cards</div>
+            <div class="text-caption">Search by title, description, or labels</div>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-menu>
+
     <!-- Board Actions -->
     <v-btn
       v-if="canManageBoard"
@@ -281,7 +372,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Board } from '~/types/models'
+import type { Board, Card } from '~/types/models'
 
 interface Props {
   board: Board
@@ -289,6 +380,13 @@ interface Props {
 
 interface Emits {
   (event: 'refresh'): void
+  (event: 'scrollToCard', cardId: number): void
+}
+
+interface SearchResult {
+  card: Card
+  listName: string
+  listId: number
 }
 
 const props = defineProps<Props>()
@@ -305,6 +403,8 @@ const backgroundDialog = ref(false)
 const labelsDialog = ref(false)
 const settingsDialog = ref(false)
 const addMembersDialog = ref(false)
+const searchOpen = ref(false)
+const searchQuery = ref('')
 
 const settingsForm = reactive({
   title: props.board.title,
@@ -331,6 +431,37 @@ const VISIBILITY_OPTIONS = [
   { label: 'Workspace', value: 'workspace' },
   { label: 'Public', value: 'public' }
 ]
+
+const searchResults = computed(() => {
+  if (!searchQuery.value.trim() || !props.board.lists) return []
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  const results: SearchResult[] = []
+  
+  props.board.lists.forEach(list => {
+    if (!list.cards || list.archived) return
+    
+    list.cards
+      .filter(card => !card.archived)
+      .forEach(card => {
+        const titleMatch = card.title.toLowerCase().includes(query)
+        const descMatch = card.description?.toLowerCase().includes(query)
+        const labelMatch = card.labels?.some(label => 
+          label.name.toLowerCase().includes(query)
+        )
+        
+        if (titleMatch || descMatch || labelMatch) {
+          results.push({
+            card,
+            listName: list.title,
+            listId: list.id
+          })
+        }
+      })
+  })
+  
+  return results.slice(0, 10) // Limit to 10 results
+})
 
 const currentUserRole = computed(() => {
   if (!props.board || !userStore.user) return null
@@ -396,6 +527,19 @@ const getUserInitials = (name: string): string => {
     .map(part => part.charAt(0).toUpperCase())
     .join('')
     .slice(0, 2)
+}
+
+const handleCardClick = (result: SearchResult) => {
+  searchOpen.value = false
+  searchQuery.value = ''
+  
+  // Emit event to scroll to card and highlight it
+  emit('scrollToCard', result.card.id)
+  
+  // Optionally open the card modal after a brief delay
+  setTimeout(() => {
+    uiStore.openCardModal(result.card.id)
+  }, 600)
 }
 
 const handleUpdateTitle = async () => {
@@ -540,10 +684,36 @@ watch(settingsDialog, (open) => {
   padding: 0 8px;
 }
 
-/* Force white text for title button and div */
 .v-btn.text-white,
 .text-white {
   color: white !important;
+}
+
+.search-card {
+  min-width: 400px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.search-results {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  border-radius: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.label-chip {
+  font-size: 10px !important;
+  height: 18px !important;
 }
 
 .background-colors {
@@ -573,6 +743,10 @@ watch(settingsDialog, (open) => {
 @media (max-width: 768px) {
   .board-header {
     padding: 0 8px;
+  }
+
+  .search-card {
+    min-width: 300px;
   }
 
   .background-colors {

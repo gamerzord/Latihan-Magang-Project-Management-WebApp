@@ -1,6 +1,7 @@
 <template>
   <v-card
-    class="trello-card mb-2"
+    :data-card-id="card.id"
+    class="pm-card mb-2"
     elevation="1"
     @click="$emit('open', card)"
   >
@@ -157,13 +158,13 @@ const getUserInitials = (name: string): string => {
 </script>
 
 <style scoped>
-.trello-card {
+.pm-card {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.trello-card:hover {
+.pm-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
@@ -188,7 +189,7 @@ const getUserInitials = (name: string): string => {
 }
 
 @media (max-width: 600px) {
-  .trello-card {
+  .pm-card {
     margin-bottom: 4px;
   }
   

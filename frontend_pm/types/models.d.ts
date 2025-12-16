@@ -130,7 +130,7 @@ export interface Card {
 export interface Label {
   id: number
   board_id: number
-  name?: string
+  name: string
   color: string
   board?: Board
   cards?: readonly Card[]
