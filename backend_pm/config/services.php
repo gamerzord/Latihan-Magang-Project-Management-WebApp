@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'n8n' => [
+        'api_key' => env('N8N_API_KEY', 'your-secret-key-here'),
+        'webhook_url' => env('N8N_WEBHOOK_URL', 'http://localhost:5678'),
+    ],
+
 ];

@@ -19,6 +19,12 @@ use App\Http\Controllers\UserController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::middleware('api.key')->group(function () {
+    Route::post('/cards/from-email', [CardController::class, 'createFromEmail']);
+    Route::post('/cards/from-email/validate', [CardController::class, 'validateEmailData']);
+});
+
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {

@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\BoardList;
 use App\Models\Card;
 use App\Models\Label;
+use App\Models\User;
+use App\Models\Board;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CardController extends Controller
 {
@@ -342,5 +346,242 @@ public function addMember(Request $request, $id)
             ->get(['users.id', 'name', 'email', 'avatar_url']);
         
         return response()->json(['members' => $boardMembers]);
+    }
+
+    public function createFromEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'board_id' => 'required|exists:boards,id',
+            'list_id' => 'required|exists:lists,id',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'due_date' => 'nullable|date',
+            'priority' => 'nullable|in:low,medium,high',
+            'creator_email' => 'required|email',
+            'assignees' => 'nullable|array',
+            'assignees.*' => 'email',
+            'labels' => 'nullable|array',
+            'labels.*' => 'string',
+            'attachments' => 'nullable|array',
+            'attachments.*.url' => 'required|url',
+            'attachments.*.filename' => 'required|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Find the user who sent the email
+            $creator = User::where('email', $validated['creator_email'])->first();
+            
+            if (!$creator) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found with email: ' . $validated['creator_email']
+                ], 404);
+            }
+
+            // Check if user has access to the board
+            $board = Board::with('members')->findOrFail($validated['board_id']);
+            $hasAccess = $board->members->contains('id', $creator->id) || 
+                        $board->creator_id === $creator->id;
+
+            if (!$hasAccess) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User does not have access to this board'
+                ], 403);
+            }
+
+            // Verify list belongs to board
+            $list = BoardList::where('id', $validated['list_id'])
+                           ->where('board_id', $validated['board_id'])
+                           ->firstOrFail();
+
+            // Get the next position
+            $maxPosition = Card::where('list_id', $list->id)->max('position') ?? 0;
+
+            // Create the card
+            $card = Card::create([
+                'list_id' => $list->id,
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'position' => $maxPosition + 1,
+                'due_date' => $validated['due_date'] ?? null,
+                'created_by' => $creator->id,
+            ]);
+
+            // Add creator as a member
+            $card->members()->attach($creator->id, [
+                'assigned_by' => $creator->id
+            ]);
+
+            // Handle assignees
+            if (!empty($validated['assignees'])) {
+                foreach ($validated['assignees'] as $assigneeEmail) {
+                    $assignee = User::where('email', $assigneeEmail)->first();
+                    if ($assignee && $board->members->contains('id', $assignee->id)) {
+                        $card->members()->syncWithoutDetaching([
+                            $assignee->id => ['assigned_by' => $creator->id]
+                        ]);
+                    }
+                }
+            }
+
+            // Handle labels
+            if (!empty($validated['labels'])) {
+                foreach ($validated['labels'] as $labelName) {
+                    $label = $board->labels()->where('name', $labelName)->first();
+                    if ($label) {
+                        $card->labels()->attach($label->id);
+                    }
+                }
+            }
+
+            // Handle attachments (store metadata)
+            if (!empty($validated['attachments'])) {
+                foreach ($validated['attachments'] as $attachment) {
+                    $card->attachments()->create([
+                        'filename' => $attachment['filename'],
+                        'file_path' => $attachment['url'],
+                        'file_type' => pathinfo($attachment['filename'], PATHINFO_EXTENSION),
+                        'file_size' => 0,
+                        'uploaded_by' => $creator->id,
+                    ]);
+                }
+            }
+
+            // Log the activity manually (without spatie/laravel-activitylog)
+            Log::info('Card created via email', [
+                'card_id' => $card->id,
+                'board_id' => $board->id,
+                'creator_id' => $creator->id,
+                'source' => 'email'
+            ]);
+
+            DB::commit();
+
+            // Load relationships
+            $card->load(['creator', 'members', 'labels', 'attachments', 'list']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Card created successfully from email',
+                'data' => [
+                    'card' => $card,
+                    'board' => $board->title,
+                    'list' => $list->title,
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to create card from email', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create card from email',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate email data before creating card (for n8n to check)
+     */
+    public function validateEmailData(Request $request)
+    {
+        $validated = $request->validate([
+            'workspace_id' => 'required|exists:workspaces,id',
+            'board_title' => 'required|string',
+            'list_title' => 'required|string',
+            'creator_email' => 'required|email',
+        ]);
+
+        try {
+            // Check if user exists
+            $creator = User::where('email', $validated['creator_email'])->first();
+            if (!$creator) {
+                return response()->json([
+                    'valid' => false,
+                    'errors' => ['User not found with this email']
+                ]);
+            }
+
+            // Get workspace and check access
+            $workspace = \App\Models\Workspace::with(['members', 'boards.lists'])
+                ->findOrFail($validated['workspace_id']);
+            
+            $hasWorkspaceAccess = $workspace->members->contains('id', $creator->id) || 
+                                 $workspace->creator_id === $creator->id;
+
+            if (!$hasWorkspaceAccess) {
+                return response()->json([
+                    'valid' => false,
+                    'errors' => ['User does not have access to this workspace']
+                ]);
+            }
+
+            // Find board by title in workspace
+            $board = $workspace->boards()
+                              ->where('title', $validated['board_title'])
+                              ->with('lists')
+                              ->first();
+
+            if (!$board) {
+                return response()->json([
+                    'valid' => false,
+                    'errors' => ['Board not found with title: ' . $validated['board_title']],
+                    'available_boards' => $workspace->boards->pluck('title')
+                ]);
+            }
+
+            // Check board access
+            $hasBoardAccess = $board->members->contains('id', $creator->id) || 
+                            $board->creator_id === $creator->id;
+
+            if (!$hasBoardAccess) {
+                return response()->json([
+                    'valid' => false,
+                    'errors' => ['User does not have access to this board']
+                ]);
+            }
+
+            // Find list by title in board
+            $list = $board->lists()
+                         ->where('title', $validated['list_title'])
+                         ->first();
+
+            if (!$list) {
+                return response()->json([
+                    'valid' => false,
+                    'errors' => ['List not found with title: ' . $validated['list_title']],
+                    'available_lists' => $board->lists->pluck('title')
+                ]);
+            }
+
+            return response()->json([
+                'valid' => true,
+                'data' => [
+                    'workspace_id' => $workspace->id,
+                    'workspace_name' => $workspace->name,
+                    'board_id' => $board->id,
+                    'board_title' => $board->title,
+                    'list_id' => $list->id,
+                    'list_title' => $list->title,
+                    'creator_id' => $creator->id,
+                    'creator_name' => $creator->name,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'valid' => false,
+                'errors' => [$e->getMessage()]
+            ], 500);
+        }
     }
 }
