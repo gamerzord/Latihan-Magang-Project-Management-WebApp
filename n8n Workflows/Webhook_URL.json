@@ -1,0 +1,410 @@
+{
+  "name": "My workflow (Jan 7 at 06:11:19)",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// The webhook receives data wrapped in 'body' field\nconst webhookData = $input.first().json;\nconst item = webhookData.body || webhookData;\n\n// Extract workspace ID from email address\n// Example: workspace-5@yourapp.com -> 5\nconst toEmail = item.to || '';\nconst workspaceMatch = toEmail.match(/workspace-(\\d+)@/);\nconst workspaceId = workspaceMatch ? parseInt(workspaceMatch[1]) : null;\n\n// Parse subject line\n// Format: [Board: Project Alpha] [List: To Do] Card Title\nconst subject = item.subject || '';\nconst boardMatch = subject.match(/\\[Board:\\s*([^\\]]+)\\]/i);\nconst listMatch = subject.match(/\\[List:\\s*([^\\]]+)\\]/i);\n\n// Get card title (everything after the tags)\nlet cardTitle = subject\n  .replace(/\\[Board:[^\\]]+\\]/i, '')\n  .replace(/\\[List:[^\\]]+\\]/i, '')\n  .trim();\n\n// Get email body\nconst emailBody = item.body || '';\n\n// Extract creator email (from address)\nconst creatorEmail = item.from || '';\n\nreturn [{\n  json: {\n    workspace_id: workspaceId,\n    board_title: boardMatch ? boardMatch[1].trim() : null,\n    list_title: listMatch ? listMatch[1].trim() : null,\n    card_title: cardTitle,\n    email_body: emailBody,\n    creator_email: creatorEmail,\n    raw_subject: subject,\n    raw_to: toEmail,\n    debug: item  // Add this to see the structure\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -624,
+        96
+      ],
+      "id": "ad4df887-d59e-434f-bea7-b98e2a1e323b",
+      "name": "Extract & Parse Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://localhost:port/api/cards/from-email/validate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "n8n API Key goes here"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workspace_id",
+              "value": "={{ $json.workspace_id }}"
+            },
+            {
+              "name": "board_title",
+              "value": "={{ $json.board_title }}"
+            },
+            {
+              "name": "list_title",
+              "value": "={{ $json.list_title }}"
+            },
+            {
+              "name": "creator_email",
+              "value": "={{ $json.creator_email }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -416,
+        96
+      ],
+      "id": "a38f45a0-a848-4a5d-95e1-67bb9669a1a7",
+      "name": "Validate Board & List"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9a63d358-12ab-46ca-9334-24c882cf6597",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        96
+      ],
+      "id": "504dca8a-820a-479d-b904-5e5002b8ec66",
+      "name": "Check Validation Result"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get AI response\nconst aiOutput = $input.first().json;\n\n// Extract text from AI response\nlet aiText = '';\nif (aiOutput.content?.parts?.[0]?.text) {\n  // Google Gemini format\n  aiText = aiOutput.content.parts[0].text;\n} else if (aiOutput.message?.content) {\n  // OpenAI format\n  aiText = aiOutput.message.content;\n} else if (aiOutput.text) {\n  // Generic format\n  aiText = aiOutput.text;\n}\n\n// Parse AI JSON response\nlet aiData;\ntry {\n  const jsonMatch = aiText.match(/\\{[\\s\\S]*\\}/);\n  aiData = JSON.parse(jsonMatch ? jsonMatch[0] : aiText);\n} catch (e) {\n  aiData = {\n    description: '',\n    due_date: null,\n    priority: 'medium',\n    assignees: [],\n    labels: []\n  };\n}\n\n// Get validation data from the HTTP Request node\n// Replace \"HTTP Request\" with your actual node name\nconst validationNode = $('Edit Fields')\nconst validationData = validationNode.item.json || {};\n\n// Get email data from the first Code node\n// Replace \"Code\" with your actual node name (might be \"Code1\" or \"Extract & Parse Data\")\nconst emailNode = $('Extract & Parse Data').item.json;\n\n// Merge everything\nreturn [{\n  json: {\n    board_id: validationData.board_id,\n    list_id: validationData.list_id,\n    title: emailNode.card_title || 'Untitled',\n    description: aiData.description,\n    due_date: aiData.due_date,\n    priority: aiData.priority,\n    creator_email: emailNode.creator_email,\n    assignees: aiData.assignees || [],\n    labels: aiData.labels || [],\n    attachments: []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "d3fb1e0f-abaf-4faf-84c7-f669fb454bf9",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://localhost:port/api/cards/from-email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "n8n API Key goes here"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        768,
+        0
+      ],
+      "id": "917f18c4-ae05-4c34-88e6-22b78b842360",
+      "name": "Create Card in Laravel"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "message",
+                "value": "=Card created successfully! Card ID: {{ $json.data.card.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        976,
+        0
+      ],
+      "id": "05f8d8cd-8cd1-45dc-bd4b-a14f6d207bf9",
+      "name": "Success Response"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "error",
+                "value": "={{ $('Validate Board & List').item.json.errors }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        176,
+        256
+      ],
+      "id": "578016a8-8f7e-4da9-ad1b-900840641b3f",
+      "name": "Error Response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-to-card",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -832,
+        96
+      ],
+      "id": "8d78f63f-4efa-494d-8402-7b12b2634bd4",
+      "name": "Webhook Trigger",
+      "webhookId": "ff4b1bb1-a315-4d48-85be-ed9885a59989"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an email parser for a task management system.\n\nParse the following email body and extract structured data.\n\nEmail Body:\n{{ $('Extract & Parse Data').item.json.email_body }}\n\nExtract and return ONLY valid JSON (no markdown, no explanation):\n{\n  \"description\": \"main description text (clean, without metadata)\",\n  \"due_date\": \"YYYY-MM-DD or null\",\n  \"priority\": \"low, medium, or high (default: medium)\",\n  \"assignees\": [\"email1@example.com\", \"email2@example.com\"],\n  \"labels\": [\"label1\", \"label2\"]\n}\n\nRules:\n- If due date is relative (e.g., \"tomorrow\", \"next week\"), calculate actual date from today which is {{ $now.format('yyyy-MM-dd') }}\n- Priority must be: low, medium, or high\n- Assignees should be valid email addresses only\n- Labels should be short keywords\n- Return null for missing fields"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "61067382-f22e-40cf-823e-e152b17a0353",
+      "name": "Message a model1",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "28fb1aec-0970-484e-930a-27d06a9834a7",
+              "name": "board_id",
+              "value": "={{ $json.data.board_id }}",
+              "type": "number"
+            },
+            {
+              "id": "fc402f86-c416-4033-a04f-6d2d390d9082",
+              "name": "list_id",
+              "value": "={{ $json.data.list_id }}",
+              "type": "number"
+            },
+            {
+              "id": "7d8c90ba-0e3c-4aa2-8ace-353edc947a94",
+              "name": "workspace_id",
+              "value": "={{ $('Extract & Parse Data').item.json.workspace_id }}",
+              "type": "number"
+            },
+            {
+              "id": "7d802850-c558-493f-89f4-8c9ef034478e",
+              "name": "card_title",
+              "value": "={{ $('Extract & Parse Data').item.json.card_title }}",
+              "type": "string"
+            },
+            {
+              "id": "89b7e730-6e95-4645-8ab6-424dce6d5eef",
+              "name": "creator_email",
+              "value": "={{ $('Extract & Parse Data').item.json.creator_email }}",
+              "type": "string"
+            },
+            {
+              "id": "439f6ce3-9a1b-4307-b14f-b0e4630f6568",
+              "name": "email_body",
+              "value": "={{ $('Extract & Parse Data').item.json.email_body }}",
+              "type": "string"
+            },
+            {
+              "id": "c09541b6-3ada-4f07-b02e-4b14cf18c0e9",
+              "name": "valid",
+              "value": "={{ $json.valid }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        96
+      ],
+      "id": "97b5f131-2ecb-4e14-8f9c-dabf9e1e9ddd",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extract & Parse Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Board & List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Board & List": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation Result": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Create Card in Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Card in Laravel": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract & Parse Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Check Validation Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "availableInMCP": false
+  },
+  "versionId": "17d8eb51-7bf4-4e9b-9af7-5446b1654b99",
+  "meta": {
+    "instanceId": "5404b276601a105d1cbdef88d2b74b34ae2ede5809ea81c6e3fecbb3d19c9690"
+  },
+  "id": "pZKncpZEOWyrEqfr",
+  "tags": []
+}

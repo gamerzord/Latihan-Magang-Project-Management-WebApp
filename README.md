@@ -1,5 +1,8 @@
 # Project Management Web Application
 
+# NEW N8N STUFF
+CONFIGURE IT, N8N HAS IT OWN MASSIVE DOCS I AM NOT PUTTING GUIDES HERE, SIMPLEST SELF HOST IS npm i -g n8n, def better if its docker, but i did it with npm too; my docker is in vm linux server and its already filled to the brim.
+
 ## Tech Stack
 
 ### Backend
