@@ -216,13 +216,6 @@
           <v-list-item-title class="text-warning">Leave Board</v-list-item-title>
         </v-list-item>
 
-        <v-list-item v-if="canManageBoard" @click="handleArchive">
-          <template #prepend>
-            <v-icon>mdi-archive</v-icon>
-          </template>
-          <v-list-item-title>Archive Board</v-list-item-title>
-        </v-list-item>
-
         <v-list-item
           v-if="isBoardOwner"
           @click="handleDeleteBoard"
@@ -592,18 +585,6 @@ const handleSaveSettings = async () => {
     uiStore.showSnackbar('Settings saved', 'success')
   } catch (error) {
     uiStore.showSnackbar('Failed to save settings', 'error')
-  }
-}
-
-const handleArchive = async () => {
-  if (!confirm('Are you sure you want to archive this board? You can restore it later from the workspace.')) return
-
-  try {
-    await boardStore.updateBoard(props.board.id, { archived: true })
-    uiStore.showSnackbar('Board archived', 'success')
-    navigateTo(`/workspaces/${props.board.workspace_id}`)
-  } catch (error) {
-    uiStore.showSnackbar('Failed to archive board', 'error')
   }
 }
 

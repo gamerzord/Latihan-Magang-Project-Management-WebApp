@@ -38,6 +38,14 @@
             Add Members
           </v-btn>
 
+            <v-btn
+              color="info"
+              prepend-icon="mdi-email-plus"
+              @click="emailIntegrationDialog = true"
+            >
+              Email Integration
+            </v-btn>
+
           <v-menu v-if="canManageWorkspace">
             <template #activator="{ props }">
               <v-btn v-bind="props" icon="mdi-dots-vertical" />
@@ -284,10 +292,241 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Email Integration Dialog -->
+    <v-dialog v-model="emailIntegrationDialog" max-width="700">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon class="mr-2" color="info">mdi-email-plus</v-icon>
+          Email to Card Integration
+        </v-card-title>
+        
+        <v-card-text>
+          <v-alert type="info" variant="tonal" class="mb-4">
+            Create cards by sending emails! Choose your preferred method below.
+          </v-alert>
+
+          <!-- Tab Selection -->
+          <v-tabs v-model="integrationTab" color="primary" class="mb-4">
+            <v-tab value="email">📧 Email Trigger</v-tab>
+            <v-tab value="webhook">🔗 Webhook</v-tab>
+          </v-tabs>
+
+          <v-window v-model="integrationTab">
+            <!-- Email Trigger Tab -->
+            <v-window-item value="email">
+              <div class="integration-section">
+                <h3 class="text-h6 mb-3">📧 Send Email Directly</h3>
+                
+                <div class="email-address-box mb-4">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <span class="text-subtitle-2 text-grey">Send your emails to:</span>
+                    <v-btn
+                      size="small"
+                      variant="text"
+                      @click="copyToClipboard(emailAddress)"
+                    >
+                      <v-icon>mdi-content-copy</v-icon>
+                      Copy
+                    </v-btn>
+                  </div>
+                  <v-text-field
+                    :model-value="emailAddress"
+                    readonly
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </div>
+
+                <v-divider class="my-4" />
+
+                <h4 class="text-subtitle-1 mb-2">✉️ Email Format:</h4>
+                <v-card variant="outlined" class="pa-3 mb-3">
+                  <pre class="email-template">To: {{ emailAddress }}
+Subject: [Board: Your Board Name] [List: List Name] Card Title
+
+Description of your card here...
+
+Details:
+- Priority: high/medium/low
+- Due: 2026-01-15 or "tomorrow"
+- Assign: john@example.com, sarah@example.com
+- Labels: bug, urgent, feature
+
+You can attach files too!
+                  </pre>
+                </v-card>
+
+                <v-expansion-panels class="mt-3">
+                  <v-expansion-panel>
+                    <v-expansion-panel-title>
+                      <v-icon class="mr-2">mdi-help-circle</v-icon>
+                      Email Format Rules
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <ul class="rules-list">
+                        <li><strong>Subject Line:</strong> Must include <code>[Board: Name]</code> and <code>[List: Name]</code></li>
+                        <li><strong>Board Name:</strong> Must match exactly (case-sensitive)</li>
+                        <li><strong>List Name:</strong> Must match exactly (case-sensitive)</li>
+                        <li><strong>Priority:</strong> Optional - low, medium, or high</li>
+                        <li><strong>Due Date:</strong> Optional - Use YYYY-MM-DD format or relative dates like "tomorrow", "next week"</li>
+                        <li><strong>Assignees:</strong> Optional - Email addresses of workspace members</li>
+                        <li><strong>Labels:</strong> Optional - Comma-separated label names</li>
+                        <li><strong>Attachments:</strong> Optional - Attach files to your email</li>
+                      </ul>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </div>
+            </v-window-item>
+
+            <!-- Webhook Tab -->
+            <v-window-item value="webhook">
+              <div class="integration-section">
+                <h3 class="text-h6 mb-3">🔗 Webhook API</h3>
+                
+                <div class="webhook-url-box mb-4">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <span class="text-subtitle-2 text-grey">Webhook URL:</span>
+                    <v-btn
+                      size="small"
+                      variant="text"
+                      @click="copyToClipboard(webhookUrl)"
+                    >
+                      <v-icon>mdi-content-copy</v-icon>
+                      Copy
+                    </v-btn>
+                  </div>
+                  <v-text-field
+                    :model-value="webhookUrl"
+                    readonly
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </div>
+
+                <v-divider class="my-4" />
+
+                <h4 class="text-subtitle-1 mb-2">📡 POST Request Format:</h4>
+                <v-card variant="outlined" class="pa-3 mb-3">
+                  <pre class="code-block">POST {{ webhookUrl }}
+Content-Type: application/json
+
+{
+  "to": "workspace-{{ workspaceId }}@yourapp.com",
+  "from": "{{ userStore.user?.email || 'your@email.com' }}",
+  "subject": "[Board: Your Board] [List: To Do] Card Title",
+  "body": "Card description here..."
+}
+                  </pre>
+                </v-card>
+
+                <v-expansion-panels class="mt-3">
+                  <v-expansion-panel>
+                    <v-expansion-panel-title>
+                      <v-icon class="mr-2">mdi-code-tags</v-icon>
+                      cURL Example
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <v-card variant="outlined" class="pa-3">
+                        <pre class="code-block">curl -X POST {{ webhookUrl }} \
+-H "Content-Type: application/json" \
+-d '{
+  "to": "workspace-{{ workspaceId }}@yourapp.com",
+  "from": "{{ userStore.user?.email || 'your@email.com' }}",
+  "subject": "[Board: Test Board] [List: To Do] Test Card",
+  "body": "This is a test card\n\nPriority: high\nDue: tomorrow"
+}'
+                        </pre>
+                      </v-card>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+
+                  <v-expansion-panel>
+                    <v-expansion-panel-title>
+                      <v-icon class="mr-2">mdi-language-javascript</v-icon>
+                      JavaScript Example
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <v-card variant="outlined" class="pa-3">
+                        <pre class="code-block">fetch('{{ webhookUrl }}', {
+method: 'POST',
+headers: {
+  'Content-Type': 'application/json'
+},
+body: JSON.stringify({
+  to: 'workspace-{{ workspaceId }}@yourapp.com',
+  from: '{{ userStore.user?.email || 'your@email.com' }}',
+  subject: '[Board: Test] [List: To Do] Card Title',
+  body: 'Card description here...'
+})
+});
+                      </pre>
+                      </v-card>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </div>
+            </v-window-item>
+          </v-window>
+
+          <!-- Available Boards Reference -->
+          <v-divider class="my-4" />
+          
+          <div class="available-boards">
+            <h4 class="text-subtitle-1 mb-2">📋 Available Boards in this Workspace:</h4>
+            <v-chip-group column>
+              <v-chip
+                v-for="board in visibleBoards"
+                :key="board.id"
+                size="small"
+                variant="outlined"
+              >
+                <strong>{{ board.title }}</strong>
+              </v-chip>
+            </v-chip-group>
+            
+            <v-alert v-if="visibleBoards.length === 0" type="warning" variant="tonal" class="mt-2">
+              No boards available. Create a board first!
+            </v-alert>
+          </div>
+        </v-card-text>
+        
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="emailIntegrationDialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup lang="ts">
+const emailIntegrationDialog = ref(false)
+const integrationTab = ref('email')
+
+const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook/email-to-card'
+const N8N_EMAIL = 'your-email@gmail.com'
+
+const emailAddress = computed(() => {
+  return `${N8N_EMAIL.split('@')[0]}+workspace-${workspaceId.value}@${N8N_EMAIL.split('@')[1]}`
+})
+
+const webhookUrl = computed(() => {
+  return N8N_WEBHOOK_URL
+})
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    uiStore.showSnackbar('Copied to clipboard!', 'success')
+  } catch (err) {
+    uiStore.showSnackbar('Failed to copy', 'error')
+  }
+}
+
 const route = useRoute()
 const uiStore = useUiStore()
 const workspaceStore = useWorkspaceStore()
@@ -648,5 +887,55 @@ watch(boardDialog, (open) => {
   .board-card {
     height: 100px;
   }
+}
+
+.integration-section {
+  padding: 16px 0;
+}
+
+.email-address-box,
+.webhook-url-box {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.email-template,
+.code-block {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.rules-list {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+
+.rules-list li {
+  margin-bottom: 8px;
+}
+
+.rules-list code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #c7254e;
+}
+
+.available-boards {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.v-expansion-panel-text :deep(.v-expansion-panel-text__wrapper) {
+  padding: 16px;
 }
 </style>
